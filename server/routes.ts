@@ -4,6 +4,27 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Water Sources API
+  app.get("/api/water-sources", async (req, res) => {
+    const sources = await storage.getWaterSources();
+    res.json(sources);
+  });
+
+  app.get("/api/water-sources/:id", async (req, res) => {
+    const source = await storage.getWaterSource(req.params.id);
+    if (!source) return res.status(404).json({ error: "Water source not found" });
+    res.json(source);
+  });
+
+  app.patch("/api/water-sources/:id", async (req, res) => {
+    try {
+      const updated = await storage.updateWaterSource(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(404).json({ error: "Water source not found" });
+    }
+  });
+
   // Zones API
   app.get("/api/zones", async (req, res) => {
     const zones = await storage.getZones();

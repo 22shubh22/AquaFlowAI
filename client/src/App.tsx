@@ -14,6 +14,7 @@ import Dashboard from "@/pages/Dashboard";
 import CitizenPortal from "@/pages/CitizenPortal";
 import PumpSchedulePage from "@/pages/PumpSchedulePage";
 import ZonesPage from "@/pages/ZonesPage";
+import WaterSourcesPage from "@/pages/WaterSourcesPage";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
@@ -34,6 +35,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/zones" component={ZonesPage} />
+      <Route path="/sources" component={WaterSourcesPage} />
       <Route path="/reports" component={CitizenPortal} />
       <Route path="/schedule" component={PumpSchedulePage} />
       <Route component={NotFound} />

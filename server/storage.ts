@@ -15,9 +15,23 @@ export interface Zone {
   lng: number;
 }
 
+export interface WaterSource {
+  id: string;
+  name: string;
+  type: "river" | "lake" | "borewell" | "reservoir";
+  location: string;
+  geoLocation: { lat: number; lng: number };
+  capacity: number; // in liters
+  currentLevel: number; // percentage
+  quality: "excellent" | "good" | "fair" | "poor";
+  lastTested?: Date;
+  status: "active" | "inactive" | "maintenance";
+}
+
 export interface Pump {
   id: string;
   zoneId: string;
+  sourceId: string; // Link to water source
   status: "active" | "idle" | "maintenance";
   schedule: string;
   flowRate: number;
@@ -56,6 +70,11 @@ export interface IStorage {
   getZone(id: string): Promise<Zone | undefined>;
   updateZone(id: string, data: Partial<Zone>): Promise<Zone>;
 
+  // Water Sources
+  getWaterSources(): Promise<WaterSource[]>;
+  getWaterSource(id: string): Promise<WaterSource | undefined>;
+  updateWaterSource(id: string, data: Partial<WaterSource>): Promise<WaterSource>;
+
   // Pumps
   getPumps(): Promise<Pump[]>;
   getPump(id: string): Promise<Pump | undefined>;
@@ -75,6 +94,7 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private zones: Map<string, Zone>;
+  private waterSources: Map<string, WaterSource>;
   private pumps: Map<string, Pump>;
   private alerts: Map<string, Alert>;
   private reports: Map<string, CitizenReport>;
@@ -82,6 +102,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.zones = new Map();
+    this.waterSources = new Map();
     this.pumps = new Map();
     this.alerts = new Map();
     this.reports = new Map();
@@ -89,6 +110,19 @@ export class MemStorage implements IStorage {
   }
 
   private initializeDemoData() {
+    // Initialize water sources for Raipur
+    const waterSources: WaterSource[] = [
+      { id: "SRC-1", name: "Mahanadi River", type: "river", location: "North Raipur", geoLocation: { lat: 21.2700, lng: 81.6300 }, capacity: 5000000, currentLevel: 78, quality: "good", lastTested: new Date(), status: "active" },
+      { id: "SRC-2", name: "Kharun River", type: "river", location: "East Raipur", geoLocation: { lat: 21.2200, lng: 81.6900 }, capacity: 3000000, currentLevel: 65, quality: "good", lastTested: new Date(), status: "active" },
+      { id: "SRC-3", name: "Telibandha Lake", type: "lake", location: "Central Raipur", geoLocation: { lat: 21.2500, lng: 81.6450 }, capacity: 800000, currentLevel: 85, quality: "excellent", lastTested: new Date(), status: "active" },
+      { id: "SRC-4", name: "Budha Talab", type: "lake", location: "South Raipur", geoLocation: { lat: 21.2100, lng: 81.6350 }, capacity: 500000, currentLevel: 72, quality: "good", lastTested: new Date(), status: "active" },
+      { id: "SRC-5", name: "Borewell Cluster A", type: "borewell", location: "Devendra Nagar", geoLocation: { lat: 21.2280, lng: 81.6050 }, capacity: 200000, currentLevel: 58, quality: "fair", lastTested: new Date(), status: "active" },
+      { id: "SRC-6", name: "Borewell Cluster B", type: "borewell", location: "Gudhiyari", geoLocation: { lat: 21.2000, lng: 81.6420 }, capacity: 180000, currentLevel: 45, quality: "fair", lastTested: new Date(), status: "active" },
+      { id: "SRC-7", name: "Kharora Reservoir", type: "reservoir", location: "West Raipur", geoLocation: { lat: 21.2400, lng: 81.5800 }, capacity: 1200000, currentLevel: 82, quality: "excellent", lastTested: new Date(), status: "active" },
+      { id: "SRC-8", name: "Urla Borewell Complex", type: "borewell", location: "Urla Industrial", geoLocation: { lat: 21.1920, lng: 81.7020 }, capacity: 300000, currentLevel: 62, quality: "good", lastTested: new Date(), status: "active" },
+    ];
+    waterSources.forEach(s => this.waterSources.set(s.id, s));
+
     // Initialize zones with actual Raipur coordinates
     const zones: Zone[] = [
       { id: "RAI-1", name: "Civil Lines", status: "optimal", flowRate: 520, pressure: 50, lastUpdated: new Date(), lat: 21.2447, lng: 81.6340 },
@@ -106,26 +140,26 @@ export class MemStorage implements IStorage {
     ];
     zones.forEach(z => this.zones.set(z.id, z));
 
-    // Initialize pumps
+    // Initialize pumps with water source references
     const pumps: Pump[] = [
-      { id: "P1", zoneId: "RAI-1", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 180 },
-      { id: "P2", zoneId: "RAI-1", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
-      { id: "P3", zoneId: "RAI-2", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 160 },
-      { id: "P4", zoneId: "RAI-3", status: "idle", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 0 },
-      { id: "P5", zoneId: "RAI-3", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 160 },
-      { id: "P6", zoneId: "RAI-4", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 150 },
-      { id: "P7", zoneId: "RAI-5", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 190 },
-      { id: "P8", zoneId: "RAI-5", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 200 },
-      { id: "P9", zoneId: "RAI-6", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 140 },
-      { id: "P10", zoneId: "RAI-7", status: "maintenance", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 0 },
-      { id: "P11", zoneId: "RAI-7", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
-      { id: "P12", zoneId: "RAI-8", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 210 },
-      { id: "P13", zoneId: "RAI-9", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 165 },
-      { id: "P14", zoneId: "RAI-10", status: "active", schedule: "00:00 - 24:00", flowRate: 240 },
-      { id: "P15", zoneId: "RAI-10", status: "active", schedule: "00:00 - 24:00", flowRate: 240 },
-      { id: "P16", zoneId: "RAI-11", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 155 },
-      { id: "P17", zoneId: "RAI-12", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
-      { id: "P18", zoneId: "RAI-12", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 165 },
+      { id: "P1", zoneId: "RAI-1", sourceId: "SRC-1", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 180 },
+      { id: "P2", zoneId: "RAI-1", sourceId: "SRC-7", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
+      { id: "P3", zoneId: "RAI-2", sourceId: "SRC-1", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 160 },
+      { id: "P4", zoneId: "RAI-3", sourceId: "SRC-5", status: "idle", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 0 },
+      { id: "P5", zoneId: "RAI-3", sourceId: "SRC-5", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 160 },
+      { id: "P6", zoneId: "RAI-4", sourceId: "SRC-2", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 150 },
+      { id: "P7", zoneId: "RAI-5", sourceId: "SRC-1", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 190 },
+      { id: "P8", zoneId: "RAI-5", sourceId: "SRC-2", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 200 },
+      { id: "P9", zoneId: "RAI-6", sourceId: "SRC-2", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 140 },
+      { id: "P10", zoneId: "RAI-7", sourceId: "SRC-6", status: "maintenance", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 0 },
+      { id: "P11", zoneId: "RAI-7", sourceId: "SRC-6", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
+      { id: "P12", zoneId: "RAI-8", sourceId: "SRC-2", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 210 },
+      { id: "P13", zoneId: "RAI-9", sourceId: "SRC-7", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 165 },
+      { id: "P14", zoneId: "RAI-10", sourceId: "SRC-8", status: "active", schedule: "00:00 - 24:00", flowRate: 240 },
+      { id: "P15", zoneId: "RAI-10", sourceId: "SRC-8", status: "active", schedule: "00:00 - 24:00", flowRate: 240 },
+      { id: "P16", zoneId: "RAI-11", sourceId: "SRC-2", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 155 },
+      { id: "P17", zoneId: "RAI-12", sourceId: "SRC-3", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
+      { id: "P18", zoneId: "RAI-12", sourceId: "SRC-3", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 165 },
     ];
     pumps.forEach(p => this.pumps.set(p.id, p));
 
@@ -168,6 +202,22 @@ export class MemStorage implements IStorage {
     if (!zone) throw new Error("Zone not found");
     const updated = { ...zone, ...data, lastUpdated: new Date() };
     this.zones.set(id, updated);
+    return updated;
+  }
+
+  async getWaterSources(): Promise<WaterSource[]> {
+    return Array.from(this.waterSources.values());
+  }
+
+  async getWaterSource(id: string): Promise<WaterSource | undefined> {
+    return this.waterSources.get(id);
+  }
+
+  async updateWaterSource(id: string, data: Partial<WaterSource>): Promise<WaterSource> {
+    const source = this.waterSources.get(id);
+    if (!source) throw new Error("Water source not found");
+    const updated = { ...source, ...data };
+    this.waterSources.set(id, updated);
     return updated;
   }
 

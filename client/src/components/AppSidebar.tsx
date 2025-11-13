@@ -1,4 +1,4 @@
-import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock } from "lucide-react";
+import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock, Droplets } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +37,11 @@ export function AppSidebar() {
       title: "Citizen Reports",
       url: "/reports",
       icon: FileText,
+    },
+    {
+      title: "Water Sources",
+      url: "/sources",
+      icon: Droplets,
     },
   ];
 

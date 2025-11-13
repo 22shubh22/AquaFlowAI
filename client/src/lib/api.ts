@@ -1,13 +1,24 @@
+import type { Zone, Pump, Alert, CitizenReport, WaterSource } from "../../server/storage";
 
-const API_BASE = '/api';
+const API_BASE = "/api";
 
 export const api = {
+  // Water Sources
+  getWaterSources: () => fetch(`${API_BASE}/water-sources`).then(r => r.json()),
+  getWaterSource: (id: string) => fetch(`${API_BASE}/water-sources/${id}`).then(r => r.json()),
+  updateWaterSource: (id: string, data: Partial<WaterSource>) =>
+    fetch(`${API_BASE}/water-sources/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(r => r.json()),
+
   // Zones
   getZones: async () => {
     const res = await fetch(`${API_BASE}/zones`);
     return res.json();
   },
-  
+
   updateZone: async (id: string, data: any) => {
     const res = await fetch(`${API_BASE}/zones/${id}`, {
       method: 'PATCH',
