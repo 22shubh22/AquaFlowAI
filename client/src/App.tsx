@@ -15,6 +15,7 @@ import CitizenPortal from "@/pages/CitizenPortal";
 import PumpSchedulePage from "@/pages/PumpSchedulePage";
 import ZonesPage from "@/pages/ZonesPage";
 import WaterSourcesPage from "@/pages/WaterSourcesPage";
+import SettingsPage from "@/pages/SettingsPage";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/sources" component={WaterSourcesPage} />
       <Route path="/reports" component={CitizenPortal} />
       <Route path="/schedule" component={PumpSchedulePage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );
