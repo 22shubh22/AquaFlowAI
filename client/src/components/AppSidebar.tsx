@@ -1,4 +1,4 @@
-import { Home, Map, AlertTriangle, Users, Settings, FileText } from "lucide-react";
+import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,18 +11,49 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useLocation } from "wouter";
-
-const menuItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Zone Map", url: "/zones", icon: Map },
-  { title: "Alerts", url: "/alerts", icon: AlertTriangle },
-  { title: "Citizen Reports", url: "/reports", icon: Users },
-  { title: "Pump Schedule", url: "/schedule", icon: FileText },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
+import { useAuth } from "@/context/auth"; // Assuming useAuth is in this path
 
 export function AppSidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { role } = useAuth();
+
+  const adminItems = [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: Home,
+    },
+    {
+      title: "Zones",
+      url: "/zones",
+      icon: Map,
+    },
+    {
+      title: "Pump Schedule",
+      url: "/schedule",
+      icon: Clock,
+    },
+    {
+      title: "Citizen Reports",
+      url: "/reports",
+      icon: FileText,
+    },
+  ];
+
+  const citizenItems = [
+    {
+      title: "Report Issue",
+      url: "/reports",
+      icon: FileText,
+    },
+    {
+      title: "Water Schedule",
+      url: "/schedule",
+      icon: Clock,
+    },
+  ];
+
+  const items = role === "admin" ? adminItems : citizenItems;
 
   return (
     <Sidebar>
@@ -42,7 +73,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={location === item.url}>
                     <a href={item.url} data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}>
@@ -55,6 +86,24 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {/* Optionally add a settings link for admins if not already included */}
+        {role === "admin" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location === "/settings"}>
+                    <a href="/settings" data-testid="link-settings">
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );
