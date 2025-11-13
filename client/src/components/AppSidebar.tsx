@@ -11,7 +11,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useLocation } from "wouter";
-import { useAuth } from "@/context/auth"; // Assuming useAuth is in this path
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
