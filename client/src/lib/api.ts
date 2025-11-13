@@ -20,12 +20,22 @@ export const api = {
   // Water Sources
   getWaterSources: () => fetch(`${API_BASE}/water-sources`).then(r => r.json()),
   getWaterSource: (id: string) => fetch(`${API_BASE}/water-sources/${id}`).then(r => r.json()),
+  createWaterSource: (data: Omit<WaterSource, 'id'>) =>
+    fetch(`${API_BASE}/water-sources`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(r => r.json()),
   updateWaterSource: (id: string, data: Partial<WaterSource>) =>
     fetch(`${API_BASE}/water-sources/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }).then(r => r.json()),
+  deleteWaterSource: (id: string) =>
+    fetch(`${API_BASE}/water-sources/${id}`, {
+      method: 'DELETE'
+    }),
 
   // Zones
   getZones: async () => {

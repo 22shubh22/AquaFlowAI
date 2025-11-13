@@ -73,7 +73,9 @@ export interface IStorage {
   // Water Sources
   getWaterSources(): Promise<WaterSource[]>;
   getWaterSource(id: string): Promise<WaterSource | undefined>;
+  createWaterSource(source: Omit<WaterSource, 'id'>): Promise<WaterSource>;
   updateWaterSource(id: string, data: Partial<WaterSource>): Promise<WaterSource>;
+  deleteWaterSource(id: string): Promise<void>;
 
   // Pumps
   getPumps(): Promise<Pump[]>;
@@ -224,12 +226,25 @@ export class MemStorage implements IStorage {
     return this.waterSources.get(id);
   }
 
+  async createWaterSource(source: Omit<WaterSource, 'id'>): Promise<WaterSource> {
+    const id = `SRC-${randomUUID().substring(0, 8).toUpperCase()}`;
+    const newSource: WaterSource = { ...source, id };
+    this.waterSources.set(id, newSource);
+    return newSource;
+  }
+
   async updateWaterSource(id: string, data: Partial<WaterSource>): Promise<WaterSource> {
     const source = this.waterSources.get(id);
     if (!source) throw new Error("Water source not found");
     const updated = { ...source, ...data };
     this.waterSources.set(id, updated);
     return updated;
+  }
+
+  async deleteWaterSource(id: string): Promise<void> {
+    const source = this.waterSources.get(id);
+    if (!source) throw new Error("Water source not found");
+    this.waterSources.delete(id);
   }
 
   async getPumps(): Promise<Pump[]> {

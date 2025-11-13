@@ -38,10 +38,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(source);
   });
 
+  app.post("/api/water-sources", async (req, res) => {
+    try {
+      const newSource = await storage.createWaterSource(req.body);
+      res.status(201).json(newSource);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create water source" });
+    }
+  });
+
   app.patch("/api/water-sources/:id", async (req, res) => {
     try {
       const updated = await storage.updateWaterSource(req.params.id, req.body);
       res.json(updated);
+    } catch (error) {
+      res.status(404).json({ error: "Water source not found" });
+    }
+  });
+
+  app.delete("/api/water-sources/:id", async (req, res) => {
+    try {
+      await storage.deleteWaterSource(req.params.id);
+      res.status(204).send();
     } catch (error) {
       res.status(404).json({ error: "Water source not found" });
     }

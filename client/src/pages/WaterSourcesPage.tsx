@@ -1,17 +1,136 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Droplets, TrendingDown, TrendingUp, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Droplets, TrendingDown, TrendingUp, AlertCircle, Plus, Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { WaterSource } from "../../../server/storage";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WaterSourcesPage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingSource, setEditingSource] = useState<WaterSource | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "river" as const,
+    location: "",
+    lat: 21.25,
+    lng: 81.63,
+    capacity: 1000000,
+    currentLevel: 75,
+    quality: "good" as const,
+    status: "active" as const,
+  });
+
   const { data: sources = [], isLoading } = useQuery<WaterSource[]>({
     queryKey: ['/api/water-sources'],
     queryFn: api.getWaterSources,
   });
+
+  const createMutation = useMutation({
+    mutationFn: api.createWaterSource,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/water-sources'] });
+      setIsDialogOpen(false);
+      resetForm();
+      toast({ title: "Water source created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to create water source", variant: "destructive" });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<WaterSource> }) =>
+      api.updateWaterSource(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/water-sources'] });
+      setIsDialogOpen(false);
+      setEditingSource(null);
+      resetForm();
+      toast({ title: "Water source updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update water source", variant: "destructive" });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteWaterSource,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/water-sources'] });
+      toast({ title: "Water source deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete water source", variant: "destructive" });
+    }
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      type: "river",
+      location: "",
+      lat: 21.25,
+      lng: 81.63,
+      capacity: 1000000,
+      currentLevel: 75,
+      quality: "good",
+      status: "active",
+    });
+  };
+
+  const handleEdit = (source: WaterSource) => {
+    setEditingSource(source);
+    setFormData({
+      name: source.name,
+      type: source.type,
+      location: source.location,
+      lat: source.geoLocation.lat,
+      lng: source.geoLocation.lng,
+      capacity: source.capacity,
+      currentLevel: source.currentLevel,
+      quality: source.quality,
+      status: source.status,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const sourceData = {
+      name: formData.name,
+      type: formData.type,
+      location: formData.location,
+      geoLocation: { lat: formData.lat, lng: formData.lng },
+      capacity: formData.capacity,
+      currentLevel: formData.currentLevel,
+      quality: formData.quality,
+      status: formData.status,
+      lastTested: new Date(),
+    };
+
+    if (editingSource) {
+      updateMutation.mutate({ id: editingSource.id, data: sourceData });
+    } else {
+      createMutation.mutate(sourceData);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this water source?")) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const getSourceTypeBadge = (type: string) => {
     const colors = {
@@ -52,9 +171,151 @@ export default function WaterSourcesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Water Sources</h1>
-        <p className="text-muted-foreground mt-1">Monitor all water sources feeding the distribution network</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Water Sources</h1>
+          <p className="text-muted-foreground mt-1">Monitor all water sources feeding the distribution network</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setEditingSource(null);
+            resetForm();
+          }
+        }}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Water Source
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingSource ? "Edit Water Source" : "Add New Water Source"}</DialogTitle>
+              <DialogDescription>
+                {editingSource ? "Update the water source details" : "Add a new water source to the network"}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="type" className="text-right">Type</Label>
+                  <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="river">River</SelectItem>
+                      <SelectItem value="lake">Lake</SelectItem>
+                      <SelectItem value="borewell">Borewell</SelectItem>
+                      <SelectItem value="reservoir">Reservoir</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="location" className="text-right">Location</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="lat" className="text-right">Latitude</Label>
+                  <Input
+                    id="lat"
+                    type="number"
+                    step="0.0001"
+                    value={formData.lat}
+                    onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="lng" className="text-right">Longitude</Label>
+                  <Input
+                    id="lng"
+                    type="number"
+                    step="0.0001"
+                    value={formData.lng}
+                    onChange={(e) => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="capacity" className="text-right">Capacity (L)</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    value={formData.capacity}
+                    onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="currentLevel" className="text-right">Current Level (%)</Label>
+                  <Input
+                    id="currentLevel"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.currentLevel}
+                    onChange={(e) => setFormData({ ...formData, currentLevel: parseInt(e.target.value) })}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="quality" className="text-right">Quality</Label>
+                  <Select value={formData.quality} onValueChange={(value: any) => setFormData({ ...formData, quality: value })}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="excellent">Excellent</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="fair">Fair</SelectItem>
+                      <SelectItem value="poor">Poor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">Status</Label>
+                  <Select value={formData.status} onValueChange={(value: any) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">
+                  {editingSource ? "Update" : "Create"} Water Source
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -109,6 +370,7 @@ export default function WaterSourcesPage() {
                 <TableHead>Current Level</TableHead>
                 <TableHead>Quality</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,6 +394,24 @@ export default function WaterSourcesPage() {
                   </TableCell>
                   <TableCell>{getQualityBadge(source.quality)}</TableCell>
                   <TableCell>{getStatusBadge(source.status)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEdit(source)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDelete(source.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
