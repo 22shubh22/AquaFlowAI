@@ -30,12 +30,18 @@ export default function Dashboard() {
   ]);
 
   const zones = [
-    { id: "Z1", name: "North Zone", status: "optimal" as const, flowRate: "450 L/h", pressure: "48 PSI", x: 30, y: 20 },
-    { id: "Z2", name: "East Zone", status: "low-pressure" as const, flowRate: "320 L/h", pressure: "35 PSI", x: 70, y: 35 },
-    { id: "Z3", name: "South Zone", status: "high-demand" as const, flowRate: "580 L/h", pressure: "42 PSI", x: 50, y: 70 },
-    { id: "Z4", name: "West Zone", status: "optimal" as const, flowRate: "410 L/h", pressure: "46 PSI", x: 20, y: 50 },
-    { id: "Z5", name: "Central Zone", status: "optimal" as const, flowRate: "520 L/h", pressure: "50 PSI", x: 50, y: 40 },
-    { id: "Z6", name: "Industrial", status: "high-demand" as const, flowRate: "720 L/h", pressure: "44 PSI", x: 80, y: 65 },
+    { id: "RAI-1", name: "Civil Lines", status: "optimal" as const, flowRate: "520 L/h", pressure: "50 PSI", x: 45, y: 25 },
+    { id: "RAI-2", name: "Shankar Nagar", status: "optimal" as const, flowRate: "480 L/h", pressure: "48 PSI", x: 35, y: 35 },
+    { id: "RAI-3", name: "Devendra Nagar", status: "low-pressure" as const, flowRate: "320 L/h", pressure: "35 PSI", x: 25, y: 50 },
+    { id: "RAI-4", name: "Pandri", status: "optimal" as const, flowRate: "450 L/h", pressure: "46 PSI", x: 50, y: 45 },
+    { id: "RAI-5", name: "Mowa", status: "high-demand" as const, flowRate: "580 L/h", pressure: "42 PSI", x: 65, y: 30 },
+    { id: "RAI-6", name: "Tatibandh", status: "optimal" as const, flowRate: "410 L/h", pressure: "47 PSI", x: 55, y: 55 },
+    { id: "RAI-7", name: "Gudhiyari", status: "low-pressure" as const, flowRate: "340 L/h", pressure: "36 PSI", x: 40, y: 60 },
+    { id: "RAI-8", name: "Kota", status: "high-demand" as const, flowRate: "620 L/h", pressure: "40 PSI", x: 70, y: 50 },
+    { id: "RAI-9", name: "Sunder Nagar", status: "optimal" as const, flowRate: "490 L/h", pressure: "49 PSI", x: 30, y: 42 },
+    { id: "RAI-10", name: "Urla", status: "high-demand" as const, flowRate: "720 L/h", pressure: "38 PSI", x: 75, y: 65 },
+    { id: "RAI-11", name: "Amanaka", status: "optimal" as const, flowRate: "460 L/h", pressure: "47 PSI", x: 60, y: 70 },
+    { id: "RAI-12", name: "Telibandha", status: "optimal" as const, flowRate: "500 L/h", pressure: "48 PSI", x: 48, y: 35 },
   ];
 
   const flowData = [

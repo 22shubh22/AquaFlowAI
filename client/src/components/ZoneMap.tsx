@@ -29,7 +29,7 @@ export function ZoneMap({ zones, onZoneClick }: ZoneMapProps) {
     <Card className="p-6" data-testid="card-zone-map">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Distribution Zones</h3>
+          <h3 className="text-lg font-semibold">Raipur City Water Distribution Map</h3>
           <div className="flex gap-3">
             {Object.entries(statusConfig).map(([key, config]) => (
               <div key={key} className="flex items-center gap-2">
