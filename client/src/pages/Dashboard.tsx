@@ -30,18 +30,18 @@ export default function Dashboard() {
   ]);
 
   const zones = [
-    { id: "RAI-1", name: "Civil Lines", status: "optimal" as const, flowRate: "520 L/h", pressure: "50 PSI", x: 45, y: 25 },
-    { id: "RAI-2", name: "Shankar Nagar", status: "optimal" as const, flowRate: "480 L/h", pressure: "48 PSI", x: 35, y: 35 },
-    { id: "RAI-3", name: "Devendra Nagar", status: "low-pressure" as const, flowRate: "320 L/h", pressure: "35 PSI", x: 25, y: 50 },
-    { id: "RAI-4", name: "Pandri", status: "optimal" as const, flowRate: "450 L/h", pressure: "46 PSI", x: 50, y: 45 },
-    { id: "RAI-5", name: "Mowa", status: "high-demand" as const, flowRate: "580 L/h", pressure: "42 PSI", x: 65, y: 30 },
-    { id: "RAI-6", name: "Tatibandh", status: "optimal" as const, flowRate: "410 L/h", pressure: "47 PSI", x: 55, y: 55 },
-    { id: "RAI-7", name: "Gudhiyari", status: "low-pressure" as const, flowRate: "340 L/h", pressure: "36 PSI", x: 40, y: 60 },
-    { id: "RAI-8", name: "Kota", status: "high-demand" as const, flowRate: "620 L/h", pressure: "40 PSI", x: 70, y: 50 },
-    { id: "RAI-9", name: "Sunder Nagar", status: "optimal" as const, flowRate: "490 L/h", pressure: "49 PSI", x: 30, y: 42 },
-    { id: "RAI-10", name: "Urla", status: "high-demand" as const, flowRate: "720 L/h", pressure: "38 PSI", x: 75, y: 65 },
-    { id: "RAI-11", name: "Amanaka", status: "optimal" as const, flowRate: "460 L/h", pressure: "47 PSI", x: 60, y: 70 },
-    { id: "RAI-12", name: "Telibandha", status: "optimal" as const, flowRate: "500 L/h", pressure: "48 PSI", x: 48, y: 35 },
+    { id: "RAI-1", name: "Civil Lines", status: "optimal" as const, flowRate: "520 L/h", pressure: "50 PSI", lat: 21.2447, lng: 81.6340 },
+    { id: "RAI-2", name: "Shankar Nagar", status: "optimal" as const, flowRate: "480 L/h", pressure: "48 PSI", lat: 21.2380, lng: 81.6180 },
+    { id: "RAI-3", name: "Devendra Nagar", status: "low-pressure" as const, flowRate: "320 L/h", pressure: "35 PSI", lat: 21.2280, lng: 81.6050 },
+    { id: "RAI-4", name: "Pandri", status: "optimal" as const, flowRate: "450 L/h", pressure: "46 PSI", lat: 21.2334, lng: 81.6520 },
+    { id: "RAI-5", name: "Mowa", status: "high-demand" as const, flowRate: "580 L/h", pressure: "42 PSI", lat: 21.2580, lng: 81.6580 },
+    { id: "RAI-6", name: "Tatibandh", status: "optimal" as const, flowRate: "410 L/h", pressure: "47 PSI", lat: 21.2160, lng: 81.6680 },
+    { id: "RAI-7", name: "Gudhiyari", status: "low-pressure" as const, flowRate: "340 L/h", pressure: "36 PSI", lat: 21.2000, lng: 81.6420 },
+    { id: "RAI-8", name: "Kota", status: "high-demand" as const, flowRate: "620 L/h", pressure: "40 PSI", lat: 21.2100, lng: 81.6850 },
+    { id: "RAI-9", name: "Sunder Nagar", status: "optimal" as const, flowRate: "490 L/h", pressure: "49 PSI", lat: 21.2420, lng: 81.6080 },
+    { id: "RAI-10", name: "Urla", status: "high-demand" as const, flowRate: "720 L/h", pressure: "38 PSI", lat: 21.1920, lng: 81.7020 },
+    { id: "RAI-11", name: "Amanaka", status: "optimal" as const, flowRate: "460 L/h", pressure: "47 PSI", lat: 21.1850, lng: 81.6750 },
+    { id: "RAI-12", name: "Telibandha", status: "optimal" as const, flowRate: "500 L/h", pressure: "48 PSI", lat: 21.2500, lng: 81.6450 },
   ];
 
   const flowData = [

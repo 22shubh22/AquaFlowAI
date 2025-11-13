@@ -11,6 +11,8 @@ export interface Zone {
   flowRate: number;
   pressure: number;
   lastUpdated: Date;
+  lat: number;
+  lng: number;
 }
 
 export interface Pump {
@@ -87,20 +89,20 @@ export class MemStorage implements IStorage {
   }
 
   private initializeDemoData() {
-    // Initialize zones
+    // Initialize zones with actual Raipur coordinates
     const zones: Zone[] = [
-      { id: "RAI-1", name: "Civil Lines", status: "optimal", flowRate: 520, pressure: 50, lastUpdated: new Date() },
-      { id: "RAI-2", name: "Shankar Nagar", status: "optimal", flowRate: 480, pressure: 48, lastUpdated: new Date() },
-      { id: "RAI-3", name: "Devendra Nagar", status: "low-pressure", flowRate: 320, pressure: 35, lastUpdated: new Date() },
-      { id: "RAI-4", name: "Pandri", status: "optimal", flowRate: 450, pressure: 46, lastUpdated: new Date() },
-      { id: "RAI-5", name: "Mowa", status: "high-demand", flowRate: 580, pressure: 42, lastUpdated: new Date() },
-      { id: "RAI-6", name: "Tatibandh", status: "optimal", flowRate: 410, pressure: 47, lastUpdated: new Date() },
-      { id: "RAI-7", name: "Gudhiyari", status: "low-pressure", flowRate: 340, pressure: 36, lastUpdated: new Date() },
-      { id: "RAI-8", name: "Kota", status: "high-demand", flowRate: 620, pressure: 40, lastUpdated: new Date() },
-      { id: "RAI-9", name: "Sunder Nagar", status: "optimal", flowRate: 490, pressure: 49, lastUpdated: new Date() },
-      { id: "RAI-10", name: "Urla", status: "high-demand", flowRate: 720, pressure: 38, lastUpdated: new Date() },
-      { id: "RAI-11", name: "Amanaka", status: "optimal", flowRate: 460, pressure: 47, lastUpdated: new Date() },
-      { id: "RAI-12", name: "Telibandha", status: "optimal", flowRate: 500, pressure: 48, lastUpdated: new Date() },
+      { id: "RAI-1", name: "Civil Lines", status: "optimal", flowRate: 520, pressure: 50, lastUpdated: new Date(), lat: 21.2447, lng: 81.6340 },
+      { id: "RAI-2", name: "Shankar Nagar", status: "optimal", flowRate: 480, pressure: 48, lastUpdated: new Date(), lat: 21.2380, lng: 81.6180 },
+      { id: "RAI-3", name: "Devendra Nagar", status: "low-pressure", flowRate: 320, pressure: 35, lastUpdated: new Date(), lat: 21.2280, lng: 81.6050 },
+      { id: "RAI-4", name: "Pandri", status: "optimal", flowRate: 450, pressure: 46, lastUpdated: new Date(), lat: 21.2334, lng: 81.6520 },
+      { id: "RAI-5", name: "Mowa", status: "high-demand", flowRate: 580, pressure: 42, lastUpdated: new Date(), lat: 21.2580, lng: 81.6580 },
+      { id: "RAI-6", name: "Tatibandh", status: "optimal", flowRate: 410, pressure: 47, lastUpdated: new Date(), lat: 21.2160, lng: 81.6680 },
+      { id: "RAI-7", name: "Gudhiyari", status: "low-pressure", flowRate: 340, pressure: 36, lastUpdated: new Date(), lat: 21.2000, lng: 81.6420 },
+      { id: "RAI-8", name: "Kota", status: "high-demand", flowRate: 620, pressure: 40, lastUpdated: new Date(), lat: 21.2100, lng: 81.6850 },
+      { id: "RAI-9", name: "Sunder Nagar", status: "optimal", flowRate: 490, pressure: 49, lastUpdated: new Date(), lat: 21.2420, lng: 81.6080 },
+      { id: "RAI-10", name: "Urla", status: "high-demand", flowRate: 720, pressure: 38, lastUpdated: new Date(), lat: 21.1920, lng: 81.7020 },
+      { id: "RAI-11", name: "Amanaka", status: "optimal", flowRate: 460, pressure: 47, lastUpdated: new Date(), lat: 21.1850, lng: 81.6750 },
+      { id: "RAI-12", name: "Telibandha", status: "optimal", flowRate: 500, pressure: 48, lastUpdated: new Date(), lat: 21.2500, lng: 81.6450 },
     ];
     zones.forEach(z => this.zones.set(z.id, z));
 
