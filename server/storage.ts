@@ -107,6 +107,17 @@ export class MemStorage implements IStorage {
     this.alerts = new Map();
     this.reports = new Map();
     this.initializeDemoData();
+    this.initializeDefaultUsers();
+  }
+
+  private initializeDefaultUsers() {
+    // Create default admin user
+    const adminUser: User = {
+      id: "admin-1",
+      username: "admin",
+      password: "admin123" // In production, this should be hashed
+    };
+    this.users.set(adminUser.id, adminUser);
   }
 
   private initializeDemoData() {

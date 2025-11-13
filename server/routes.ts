@@ -4,6 +4,28 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication API
+  app.post("/api/auth/login", async (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password are required" });
+    }
+
+    const user = await storage.getUserByUsername(username);
+    
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Return user info without password
+    res.json({
+      id: user.id,
+      username: user.username,
+      role: "admin" // All authenticated users are admins for now
+    });
+  });
+
   // Water Sources API
   app.get("/api/water-sources", async (req, res) => {
     const sources = await storage.getWaterSources();

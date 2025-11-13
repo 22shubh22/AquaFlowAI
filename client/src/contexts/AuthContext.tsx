@@ -6,6 +6,7 @@ type UserRole = "admin" | "citizen" | null;
 interface AuthContextType {
   role: UserRole;
   login: (role: UserRole) => void;
+  loginWithCredentials: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -29,13 +30,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithCredentials = async (username: string, password: string) => {
+    const { api } = await import("@/lib/api");
+    try {
+      const response = await api.login(username, password);
+      setRole(response.role);
+      localStorage.setItem("userRole", response.role);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const logout = () => {
     setRole(null);
     localStorage.removeItem("userRole");
   };
 
   return (
-    <AuthContext.Provider value={{ role, login, logout, isAuthenticated: role !== null }}>
+    <AuthContext.Provider value={{ role, login, loginWithCredentials, logout, isAuthenticated: role !== null }}>
       {children}
     </AuthContext.Provider>
   );

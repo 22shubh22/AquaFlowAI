@@ -3,6 +3,20 @@ import type { Zone, Pump, Alert, CitizenReport, WaterSource } from "../../server
 const API_BASE = "/api";
 
 export const api = {
+  // Authentication
+  login: async (username: string, password: string) => {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || 'Login failed');
+    }
+    return res.json();
+  },
+
   // Water Sources
   getWaterSources: () => fetch(`${API_BASE}/water-sources`).then(r => r.json()),
   getWaterSource: (id: string) => fetch(`${API_BASE}/water-sources/${id}`).then(r => r.json()),
