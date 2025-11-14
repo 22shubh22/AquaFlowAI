@@ -124,20 +124,63 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
 
     setIsSearching(true);
     try {
-      // Using Nominatim (OpenStreetMap) geocoding service
-      // Adding viewbox parameter to prioritize Raipur area
-      const viewbox = `${RAIPUR_BOUNDS.minLng},${RAIPUR_BOUNDS.maxLat},${RAIPUR_BOUNDS.maxLng},${RAIPUR_BOUNDS.minLat}`;
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Raipur, Chhattisgarh')}&limit=10&viewbox=${viewbox}&bounded=1`
-      );
-      const data = await response.json();
+      // Try multiple search strategies for better results
+      const searches = [
+        // 1. Specific Raipur search with bounded area (prioritize local results)
+        fetch(
+          `https://nominatim.openstreetmap.org/search?` +
+          `format=json&` +
+          `q=${encodeURIComponent(query)}, Raipur, Chhattisgarh, India&` +
+          `limit=5&` +
+          `viewbox=${RAIPUR_BOUNDS.minLng},${RAIPUR_BOUNDS.minLat},${RAIPUR_BOUNDS.maxLng},${RAIPUR_BOUNDS.maxLat}&` +
+          `bounded=0&` +
+          `addressdetails=1&` +
+          `countrycodes=in`,
+          { headers: { 'User-Agent': 'AquaFlow-WaterManagement/1.0' } }
+        ),
+        // 2. Broader search without bounded restriction (fallback)
+        fetch(
+          `https://nominatim.openstreetmap.org/search?` +
+          `format=json&` +
+          `q=${encodeURIComponent(query + ', Raipur, Chhattisgarh, India')}&` +
+          `limit=5&` +
+          `addressdetails=1&` +
+          `countrycodes=in`,
+          { headers: { 'User-Agent': 'AquaFlow-WaterManagement/1.0' } }
+        )
+      ];
+
+      const responses = await Promise.all(searches);
+      const allData = await Promise.all(responses.map(r => r.json()));
       
-      // Filter results to only include locations within Raipur bounds
-      const raipurResults = data.filter((result: any) => {
-        const lat = parseFloat(result.lat);
-        const lng = parseFloat(result.lon);
-        return isWithinRaipur(lat, lng);
-      });
+      // Combine results and deduplicate
+      const combinedResults = [...allData[0], ...allData[1]];
+      const uniqueResults = Array.from(
+        new Map(combinedResults.map(item => [item.place_id, item])).values()
+      );
+      
+      // Filter and sort results
+      const raipurResults = uniqueResults
+        .filter((result: any) => {
+          const lat = parseFloat(result.lat);
+          const lng = parseFloat(result.lon);
+          return isWithinRaipur(lat, lng);
+        })
+        .sort((a: any, b: any) => {
+          // Prioritize results closer to Raipur center (21.25, 81.63)
+          const centerLat = 21.25;
+          const centerLng = 81.63;
+          const distA = Math.sqrt(
+            Math.pow(parseFloat(a.lat) - centerLat, 2) + 
+            Math.pow(parseFloat(a.lon) - centerLng, 2)
+          );
+          const distB = Math.sqrt(
+            Math.pow(parseFloat(b.lat) - centerLat, 2) + 
+            Math.pow(parseFloat(b.lon) - centerLng, 2)
+          );
+          return distA - distB;
+        })
+        .slice(0, 10); // Limit to top 10 results
       
       setAddressSuggestions(raipurResults);
     } catch (error) {
