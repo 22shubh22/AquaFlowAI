@@ -10,12 +10,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import CitizenPortal from "@/pages/CitizenPortal";
 import PumpSchedulePage from "@/pages/PumpSchedulePage";
 import ZonesPage from "@/pages/ZonesPage";
 import WaterSourcesPage from "@/pages/WaterSourcesPage";
 import SettingsPage from "@/pages/SettingsPage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
 import BlockchainVerificationPage from "@/pages/BlockchainVerificationPage";
 import NotFound from "@/pages/not-found";
 
