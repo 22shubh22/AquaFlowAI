@@ -3,12 +3,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { TrendingUp, Calendar, Zap, Target } from "lucide-react";
+import { TrendingUp, Calendar, Zap, Target, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export function AIEquityDashboard() {
+  const [showCalculations, setShowCalculations] = useState(false);
+
   const { data: equityData } = useQuery({
     queryKey: ["equity-score"],
     queryFn: api.getEquityScore,
+    refetchInterval: 60000
+  });
+
+  const { data: zones } = useQuery({
+    queryKey: ["zones"],
+    queryFn: async () => {
+      const res = await api.get("/api/zones");
+      return res.json();
+    },
     refetchInterval: 60000
   });
 
@@ -21,6 +34,29 @@ export function AIEquityDashboard() {
   const equityScore = equityData?.score || 0;
   const equityLevel = equityScore >= 80 ? "Excellent" : equityScore >= 60 ? "Good" : equityScore >= 40 ? "Fair" : "Poor";
   const equityColor = equityScore >= 80 ? "text-chart-2" : equityScore >= 60 ? "text-chart-1" : equityScore >= 40 ? "text-yellow-500" : "text-destructive";
+
+  // Calculate per-capita flow rates for each zone
+  const zoneCalculations = zones?.filter((z: any) => z.population && z.population > 0 && z.flowRate)
+    .map((zone: any) => ({
+      name: zone.name,
+      population: zone.population,
+      flowRate: zone.flowRate,
+      perCapita: (zone.flowRate / zone.population).toFixed(4)
+    })) || [];
+
+  // Calculate statistics
+  const perCapitaValues = zoneCalculations.map((z: any) => parseFloat(z.perCapita));
+  const mean = perCapitaValues.length > 0 
+    ? (perCapitaValues.reduce((sum: number, val: number) => sum + val, 0) / perCapitaValues.length) 
+    : 0;
+  
+  const variance = perCapitaValues.length > 0
+    ? perCapitaValues.reduce((sum: number, val: number) => sum + Math.pow(val - mean, 2), 0) / perCapitaValues.length
+    : 0;
+  
+  const stdDev = Math.sqrt(variance);
+  const coefficientOfVariation = mean > 0 ? stdDev / mean : 0;
+  const calculatedScore = Math.max(0, Math.min(100, 100 - (coefficientOfVariation * 100)));
 
   // Assuming 'schedules' should be 'optimalSchedules' based on the context
   const schedules = optimalSchedules || [];
@@ -61,6 +97,78 @@ export function AIEquityDashboard() {
                   <li>• Score = 100 - (CV × 100)</li>
                 </ul>
               </div>
+
+              {/* Detailed Calculations */}
+              <Collapsible open={showCalculations} onOpenChange={setShowCalculations}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    <span className="text-sm font-medium">View Detailed Calculations</span>
+                    {showCalculations ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-3">
+                  {/* Per-Zone Breakdown */}
+                  <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Per-Zone Flow Rates
+                    </p>
+                    <div className="space-y-1.5">
+                      {zoneCalculations.map((zone: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-sm">
+                          <span className="font-medium">{zone.name}</span>
+                          <div className="flex gap-3 text-xs text-muted-foreground">
+                            <span>{zone.flowRate.toLocaleString()} L/h</span>
+                            <span>÷ {zone.population.toLocaleString()} people</span>
+                            <span className="font-mono font-semibold text-foreground">
+                              = {zone.perCapita} L/h/person
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Statistical Summary */}
+                  <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                      Statistical Summary
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Mean (μ)</p>
+                        <p className="font-mono font-semibold">{mean.toFixed(4)} L/h/person</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Std Dev (σ)</p>
+                        <p className="font-mono font-semibold">{stdDev.toFixed(4)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Coefficient of Variation</p>
+                        <p className="font-mono font-semibold">{coefficientOfVariation.toFixed(4)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Final Score</p>
+                        <p className="font-mono font-semibold text-primary">
+                          100 - ({coefficientOfVariation.toFixed(4)} × 100) = {calculatedScore.toFixed(0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Formula Explanation */}
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <p className="text-xs font-semibold mb-2">Complete Formula:</p>
+                    <div className="font-mono text-xs space-y-1 text-muted-foreground">
+                      <p>1. Per-capita values: [{perCapitaValues.map(v => v.toFixed(4)).join(', ')}]</p>
+                      <p>2. Mean (μ) = Σ(values) / n = {mean.toFixed(4)}</p>
+                      <p>3. Variance (σ²) = Σ(value - μ)² / n = {variance.toFixed(6)}</p>
+                      <p>4. Std Dev (σ) = √(variance) = {stdDev.toFixed(4)}</p>
+                      <p>5. CV = σ / μ = {coefficientOfVariation.toFixed(4)}</p>
+                      <p className="font-semibold text-foreground">6. Score = 100 - (CV × 100) = {calculatedScore.toFixed(0)}</p>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
               
               <div>
                 <p className="text-sm font-semibold mb-2">Significance:</p>
