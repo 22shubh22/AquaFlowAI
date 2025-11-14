@@ -438,6 +438,28 @@ class DbStorage {
     };
   }
 
+  async createPump(pump: Omit<Pump, 'lastMaintenance'> & { lastMaintenance?: Date }): Promise<Pump> {
+    const result = await db.insert(pumps).values({
+      id: pump.id,
+      zoneId: pump.zoneId,
+      sourceId: pump.sourceId,
+      status: pump.status,
+      schedule: pump.schedule,
+      flowRate: pump.flowRate.toString(),
+      lastMaintenance: pump.lastMaintenance,
+    }).returning();
+    const row = result[0];
+    return {
+      id: row.id,
+      zoneId: row.zoneId,
+      sourceId: row.sourceId,
+      status: row.status as any,
+      schedule: row.schedule,
+      flowRate: parseFloat(row.flowRate),
+      lastMaintenance: row.lastMaintenance || undefined,
+    };
+  }
+
   async updatePump(id: string, updates: Partial<Pump>): Promise<Pump> {
     const updateData: any = {};
     if (updates.status) updateData.status = updates.status;
