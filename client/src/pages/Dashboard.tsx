@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { MetricCard } from "@/components/MetricCard";
 import { ZoneMap } from "@/components/ZoneMap";
 import { AlertsList } from "@/components/AlertsList";
@@ -7,7 +8,6 @@ import { AIEquityDashboard } from "@/components/AIEquityDashboard";
 import { ZoneHistoricalChart } from "@/components/ZoneHistoricalChart";
 import { PopulationHistoryChart } from "@/components/PopulationHistoryChart";
 import { Droplets, Gauge, Activity, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
-import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
