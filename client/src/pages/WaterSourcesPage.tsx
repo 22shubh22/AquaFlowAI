@@ -8,11 +8,32 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Droplets, TrendingDown, TrendingUp, AlertCircle, Plus, Pencil, Trash2 } from "lucide-react";
+import { Droplets, TrendingDown, TrendingUp, AlertCircle, Plus, Pencil, Trash2, MapPin } from "lucide-react";
 import { api } from "@/lib/api";
 import type { WaterSource } from "../../../server/storage";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for default marker icons in Leaflet with bundlers
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+function LocationPicker({ position, onLocationChange }: { position: [number, number]; onLocationChange: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onLocationChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return <Marker position={position} />;
+}
 
 export default function WaterSourcesPage() {
   const queryClient = useQueryClient();
@@ -232,29 +253,57 @@ export default function WaterSourcesPage() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="lat" className="text-right">Latitude</Label>
-                  <Input
-                    id="lat"
-                    type="number"
-                    step="0.0001"
-                    value={formData.lat}
-                    onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="lng" className="text-right">Longitude</Label>
-                  <Input
-                    id="lng"
-                    type="number"
-                    step="0.0001"
-                    value={formData.lng}
-                    onChange={(e) => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
-                    className="col-span-3"
-                    required
-                  />
+                
+                <div className="col-span-4">
+                  <Label className="mb-2 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Select Location on Map (Click to set coordinates)
+                  </Label>
+                  <div className="h-[300px] rounded-lg overflow-hidden border-2 border-border mt-2">
+                    <MapContainer
+                      center={[formData.lat, formData.lng]}
+                      zoom={13}
+                      style={{ height: '100%', width: '100%' }}
+                      scrollWheelZoom={true}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <LocationPicker
+                        position={[formData.lat, formData.lng]}
+                        onLocationChange={(lat, lng) => {
+                          setFormData({ ...formData, lat, lng });
+                        }}
+                      />
+                    </MapContainer>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <Label htmlFor="lat" className="text-sm">Latitude</Label>
+                      <Input
+                        id="lat"
+                        type="number"
+                        step="0.0001"
+                        value={formData.lat}
+                        onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) || 21.25 })}
+                        className="mt-1"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lng" className="text-sm">Longitude</Label>
+                      <Input
+                        id="lng"
+                        type="number"
+                        step="0.0001"
+                        value={formData.lng}
+                        onChange={(e) => setFormData({ ...formData, lng: parseFloat(e.target.value) || 81.63 })}
+                        className="mt-1"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="capacity" className="text-right">Capacity (L)</Label>
