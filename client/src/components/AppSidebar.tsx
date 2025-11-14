@@ -1,4 +1,4 @@
-import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock, Droplets, TrendingUp, Shield } from "lucide-react";
+import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock, Droplets, TrendingUp, Shield, Database } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -105,8 +105,16 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <a href="/blockchain">
-                      <Shield />
+                      <Shield className="h-4 w-4" />
                       <span>Blockchain Verification</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location === "/historical-data"}>
+                    <a href="/historical-data" data-testid="link-historical-data">
+                      <Database className="h-4 w-4" />
+                      <span>Historical Data</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

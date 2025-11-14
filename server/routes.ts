@@ -295,6 +295,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload historical zone data in bulk
+  app.post("/api/historical/zones/upload", async (req, res) => {
+    try {
+      const { zoneId, data } = req.body;
+      
+      if (!zoneId || !data || !Array.isArray(data)) {
+        return res.status(400).json({ error: "Invalid data format. Expected { zoneId, data: [] }" });
+      }
+
+      const insertedCount = await storage.uploadHistoricalData(zoneId, data);
+      res.json({ 
+        success: true, 
+        insertedCount,
+        message: `Successfully uploaded ${insertedCount} historical data points for zone ${zoneId}`
+      });
+    } catch (error) {
+      console.error("Error uploading historical data:", error);
+      res.status(500).json({ error: "Failed to upload historical data" });
+    }
+  });
+
   // Analytics API for AI insights
   app.get("/api/analytics/demand-prediction", async (req, res) => {
     const zones = await storage.getZones();

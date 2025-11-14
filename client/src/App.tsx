@@ -20,7 +20,8 @@ import SettingsPage from "@/pages/SettingsPage";
 import CitizenPortal from "@/pages/CitizenPortal";
 import BlockchainVerificationPage from "@/pages/BlockchainVerificationPage";
 import CitizenUsersPage from "@/pages/CitizenUsersPage";
-import NotFound from "@/pages/not-found";
+import HistoricalDataPage from "@/pages/HistoricalDataPage";
+import { NotFound } from "@/pages/not-found";
 import { PipelineMonitor } from "@/components/PipelineMonitor";
 
 function Router() {
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/blockchain" component={BlockchainVerificationPage} />
       <Route path="/citizen-users" component={CitizenUsersPage} />
       <Route path="/pipeline-monitor" component={PipelineMonitor} />
+      <Route path="/historical-data" component={HistoricalDataPage} />
       <Route path="*" component={NotFound} />
     </Switch>
   );

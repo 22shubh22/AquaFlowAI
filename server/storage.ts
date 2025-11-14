@@ -772,6 +772,37 @@ class DbStorage {
       timestamp: record.timestamp!,
     }));
   }
+
+  async uploadHistoricalData(zoneId: string, data: any[]): Promise<number> {
+    // Validate zone exists
+    const zone = await this.getZone(zoneId);
+    if (!zone) {
+      throw new Error('Zone not found');
+    }
+
+    // Transform and insert data
+    const dataPoints = data.map(record => {
+      const timestamp = new Date(record.timestamp || record.date);
+      return {
+        zoneId,
+        flowRate: record.flowRate.toString(),
+        pressure: record.pressure.toString(),
+        timestamp,
+        hour: timestamp.getHours(),
+        dayOfWeek: timestamp.getDay(),
+      };
+    });
+
+    // Insert in batches of 100
+    let insertedCount = 0;
+    for (let i = 0; i < dataPoints.length; i += 100) {
+      const chunk = dataPoints.slice(i, i + 100);
+      await db.insert(zoneHistory).values(chunk);
+      insertedCount += chunk.length;
+    }
+
+    return insertedCount;
+  }
 }
 
 export const storage = new DbStorage();
