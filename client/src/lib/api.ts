@@ -136,6 +136,22 @@ export const api = {
     return res.json();
   },
 
+  // AI-powered features
+  getAnomalies: async () => {
+    const res = await fetch(`${API_BASE}/analytics/anomalies`);
+    return res.json();
+  },
+
+  getOptimalSchedules: async () => {
+    const res = await fetch(`${API_BASE}/analytics/optimal-schedules`);
+    return res.json();
+  },
+
+  getEquityScore: async () => {
+    const res = await fetch(`${API_BASE}/analytics/equity-score`);
+    return res.json();
+  },
+
   // Generic methods
   get: async (url: string) => {
     const res = await fetch(url);

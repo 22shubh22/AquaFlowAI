@@ -3,31 +3,39 @@ import { ZoneMap } from "@/components/ZoneMap";
 import { AlertsList } from "@/components/AlertsList";
 import { FlowChart } from "@/components/FlowChart";
 import { AIInsights } from "@/components/AIInsights";
+import { AIEquityDashboard } from "@/components/AIEquityDashboard";
 import { Droplets, Gauge, Activity, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 export default function Dashboard() {
   const { toast } = useToast();
   
-  const [alerts, setAlerts] = useState([
-    {
-      id: "A1",
-      type: "pressure-drop" as const,
-      zone: "East Zone",
-      severity: "critical" as const,
-      message: "Pressure dropped below threshold (35 PSI). Immediate attention required.",
-      timestamp: "5 minutes ago",
-    },
-    {
-      id: "A2",
-      type: "excess-pumping" as const,
-      zone: "North Zone",
-      severity: "warning" as const,
-      message: "Pump #12 running above optimal capacity for extended period.",
-      timestamp: "15 minutes ago",
-    },
-  ]);
+  const [alerts, setAlerts] = useState<any[]>([]);
+
+  // Fetch AI-detected anomalies
+  const { data: anomalies } = useQuery({
+    queryKey: ["anomalies"],
+    queryFn: api.getAnomalies,
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
+
+  // Update alerts when anomalies are detected
+  useEffect(() => {
+    if (anomalies) {
+      const formattedAlerts = anomalies.map((anomaly: any, index: number) => ({
+        id: `A${index + 1}`,
+        type: anomaly.type,
+        zone: anomaly.zoneName,
+        severity: anomaly.severity,
+        message: anomaly.message,
+        timestamp: new Date(anomaly.detectedAt).toLocaleString()
+      }));
+      setAlerts(formattedAlerts);
+    }
+  }, [anomalies]);
 
   const zones = [
     { id: "RAI-1", name: "Civil Lines", status: "optimal" as const, flowRate: "520 L/h", pressure: "50 PSI", lat: 21.2447, lng: 81.6340 },
@@ -133,6 +141,8 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      <AIEquityDashboard />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FlowChart data={flowData} />

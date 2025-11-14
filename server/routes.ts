@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { aiEngine } from "./ai-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication API
@@ -65,9 +66,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Zones API
+  // Get all zones with AI-calculated status and flow rates
   app.get("/api/zones", async (req, res) => {
     const zones = await storage.getZones();
-    res.json(zones);
+    const historicalData = await storage.getAggregatedZoneData(24); // Last 24 hours
+    const currentTime = new Date();
+
+    // Update each zone with AI predictions
+    const updatedZones = zones.map(zone => {
+      const zoneHistory = historicalData.get(zone.id) || [];
+
+      // Convert aggregated data to sensor data format
+      const sensorData = zoneHistory.map(h => ({
+        zoneId: zone.id,
+        timestamp: new Date(Date.now() - h.hour * 3600000),
+        flowRate: h.flowRate,
+        pressure: h.pressure,
+        consumption: h.flowRate * h.hour
+      }));
+
+      return {
+        ...zone,
+        status: aiEngine.calculateZoneStatus(zone, sensorData, currentTime),
+        flowRate: aiEngine.predictFlowRate(zone, sensorData, currentTime)
+      };
+    });
+
+    res.json(updatedZones);
   });
 
   app.get("/api/zones/:id", async (req, res) => {
@@ -243,6 +268,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     }
+
+    // Anomaly Detection: Excess Pumping (simulated - actual detection would involve more complex logic)
+    for (const zone of zones) {
+      const zoneHistory = await storage.getZoneHistory(zone.id, 1); // Last hour
+      if (zoneHistory.length > 0 && zoneHistory[0].flowRate > zone.maxFlowRate * 1.1) {
+        suggestions.push({
+          type: "anomaly-detection",
+          priority: "critical",
+          zone: zone.name,
+          message: `Excessive pumping detected in ${zone.name}. Current flow rate exceeds normal operational limits.`,
+          details: {
+            currentFlowRate: zoneHistory[0].flowRate,
+            maxFlowRate: zone.maxFlowRate,
+            exceededBy: (zoneHistory[0].flowRate / zone.maxFlowRate * 100 - 100).toFixed(2) + "%"
+          }
+        });
+      }
+    }
+
+    // Anomaly Detection: Leak Detection (simulated - actual detection would involve pressure drop analysis)
+    for (const zone of zones) {
+      const zoneHistory = await storage.getZoneHistory(zone.id, 1); // Last hour
+      if (zoneHistory.length > 0 && zoneHistory[0].pressure < zone.minPressure * 0.9) {
+        suggestions.push({
+          type: "anomaly-detection",
+          priority: "high",
+          zone: zone.name,
+          message: `Potential leak detected in ${zone.name} due to significant pressure drop.`,
+          details: {
+            currentPressure: zoneHistory[0].pressure,
+            minPressure: zone.minPressure,
+            pressureDrop: (zone.minPressure - zoneHistory[0].pressure).toFixed(2)
+          }
+        });
+      }
+    }
+
 
     res.json(suggestions);
   });
