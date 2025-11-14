@@ -3,7 +3,6 @@ import { storage } from './storage';
 
 const zones = [
   {
-    id: "zone-1",
     name: "Civil Lines",
     status: "optimal" as const,
     flowRate: 12500,
@@ -12,7 +11,6 @@ const zones = [
     lng: 81.6337,
   },
   {
-    id: "zone-2",
     name: "Shankar Nagar",
     status: "optimal" as const,
     flowRate: 15800,
@@ -21,7 +19,6 @@ const zones = [
     lng: 81.6296,
   },
   {
-    id: "zone-3",
     name: "Telibandha",
     status: "low-pressure" as const,
     flowRate: 9200,
@@ -30,7 +27,6 @@ const zones = [
     lng: 81.6500,
   },
   {
-    id: "zone-4",
     name: "Pandri",
     status: "optimal" as const,
     flowRate: 14300,
@@ -39,7 +35,6 @@ const zones = [
     lng: 81.6644,
   },
   {
-    id: "zone-5",
     name: "Mowa",
     status: "high-demand" as const,
     flowRate: 18500,
@@ -48,7 +43,6 @@ const zones = [
     lng: 81.6150,
   },
   {
-    id: "zone-6",
     name: "Kabir Nagar",
     status: "optimal" as const,
     flowRate: 11200,
@@ -62,12 +56,15 @@ async function seedZones() {
   console.log('🏘️ Seeding zones...');
   
   try {
+    const createdZones = [];
     for (const zone of zones) {
-      await storage.createZone(zone);
-      console.log(`✅ Created: ${zone.name}`);
+      const created = await storage.createZone(zone);
+      createdZones.push(created);
+      console.log(`✅ Created: ${zone.name} with ID: ${created.id}`);
     }
     
     console.log('\n🎉 Successfully seeded all zones!');
+    console.log('Zone IDs:', createdZones.map(z => ({ name: z.name, id: z.id })));
     process.exit(0);
   } catch (error) {
     console.error('❌ Error seeding zones:', error);

@@ -74,18 +74,15 @@ async function seedWaterSources() {
   console.log('🌊 Seeding water sources...');
   
   try {
-    let sourceId = 1;
+    const createdSources = [];
     for (const source of waterSources) {
-      const sourceWithId = {
-        ...source,
-        id: `source-${sourceId}`,
-      };
-      await storage.createWaterSource(sourceWithId);
-      console.log(`✅ Created: ${source.name} (ID: source-${sourceId})`);
-      sourceId++;
+      const created = await storage.createWaterSource(source);
+      createdSources.push(created);
+      console.log(`✅ Created: ${source.name} with ID: ${created.id}`);
     }
     
     console.log('\n🎉 Successfully seeded all water sources!');
+    console.log('Source IDs:', createdSources.map(s => ({ name: s.name, id: s.id })));
     process.exit(0);
   } catch (error) {
     console.error('❌ Error seeding water sources:', error);
