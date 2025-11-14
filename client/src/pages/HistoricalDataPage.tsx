@@ -1,21 +1,22 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { Download, Upload, Database, Calendar } from "lucide-react";
+import { Download, Upload, Database, Calendar, FileText } from "lucide-react";
 
 export default function HistoricalDataPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedZone, setSelectedZone] = useState<string>("");
-  const [uploadData, setUploadData] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: zones } = useQuery({
     queryKey: ["zones"],
@@ -43,9 +44,12 @@ export default function HistoricalDataPage() {
     onSuccess: (result) => {
       toast({
         title: "Upload Successful",
-        description: result.message,
+        description: `Successfully uploaded ${result.insertedCount} records`,
       });
-      setUploadData("");
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       queryClient.invalidateQueries({ queryKey: ["zone-history-all"] });
     },
     onError: (error: any) => {
@@ -57,7 +61,66 @@ export default function HistoricalDataPage() {
     }
   });
 
-  const handleUpload = () => {
+  const parseCSV = (csvText: string): any[] => {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+      throw new Error("CSV file is empty or has no data rows");
+    }
+
+    // Parse header
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    // Validate required columns
+    const requiredColumns = ['timestamp', 'flowrate', 'pressure'];
+    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+    if (missingColumns.length > 0) {
+      throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+    }
+
+    // Parse data rows
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const values = line.split(',').map(v => v.trim());
+      const row: any = {};
+      
+      headers.forEach((header, index) => {
+        row[header] = values[index];
+      });
+
+      // Validate and transform
+      if (!row.timestamp || !row.flowrate || !row.pressure) {
+        throw new Error(`Invalid data at row ${i + 1}: missing required fields`);
+      }
+
+      data.push({
+        timestamp: row.timestamp,
+        flowRate: parseFloat(row.flowrate),
+        pressure: parseFloat(row.pressure)
+      });
+    }
+
+    return data;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.csv')) {
+        toast({
+          title: "Invalid File",
+          description: "Please select a CSV file",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = async () => {
     if (!selectedZone) {
       toast({
         title: "No Zone Selected",
@@ -67,19 +130,47 @@ export default function HistoricalDataPage() {
       return;
     }
 
+    if (!selectedFile) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a CSV file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const parsedData = JSON.parse(uploadData);
-      if (!Array.isArray(parsedData)) {
-        throw new Error("Data must be an array");
+      const text = await selectedFile.text();
+      const parsedData = parseCSV(text);
+      
+      if (parsedData.length === 0) {
+        throw new Error("No valid data found in CSV file");
       }
+
       uploadMutation.mutate({ zoneId: selectedZone, data: parsedData });
     } catch (error: any) {
       toast({
-        title: "Invalid JSON",
+        title: "Invalid CSV",
         description: error.message,
         variant: "destructive",
       });
     }
+  };
+
+  const downloadTemplate = () => {
+    const template = `timestamp,flowRate,pressure
+2024-01-01T00:00:00Z,2500,45
+2024-01-01T01:00:00Z,2200,46
+2024-01-01T02:00:00Z,1800,47
+2024-01-01T03:00:00Z,1500,48`;
+
+    const blob = new Blob([template], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "historical-data-template.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const exportToCSV = () => {
@@ -107,18 +198,10 @@ export default function HistoricalDataPage() {
     a.click();
   };
 
-  const sampleData = [
-    {
-      timestamp: "2024-01-01T00:00:00Z",
-      flowRate: 2500,
-      pressure: 45
-    },
-    {
-      timestamp: "2024-01-01T01:00:00Z",
-      flowRate: 2200,
-      pressure: 46
-    }
-  ];
+  const sampleCSV = `timestamp,flowRate,pressure
+2024-01-01T00:00:00Z,2500,45
+2024-01-01T01:00:00Z,2200,46
+2024-01-01T02:00:00Z,1800,47`;
 
   return (
     <div className="space-y-6">
@@ -223,48 +306,65 @@ export default function HistoricalDataPage() {
                   Upload Historical Data
                 </CardTitle>
                 <CardDescription>
-                  Upload zone historical data in JSON format for AI predictions
+                  Upload zone historical data in CSV format for AI predictions
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Data Format (JSON Array)</label>
-                  <Textarea
-                    value={uploadData}
-                    onChange={(e) => setUploadData(e.target.value)}
-                    placeholder={JSON.stringify(sampleData, null, 2)}
-                    className="font-mono text-xs min-h-[300px]"
-                  />
+                  <label className="text-sm font-medium">CSV File Upload</label>
+                  <div className="flex gap-2">
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileChange}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={downloadTemplate}
+                      className="shrink-0"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Download Template
+                    </Button>
+                  </div>
+                  {selectedFile && (
+                    <p className="text-sm text-muted-foreground">
+                      Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Each record must include: timestamp (ISO 8601), flowRate (number), pressure (number)
+                    CSV must include columns: timestamp, flowRate, pressure
                   </p>
                 </div>
 
                 <div className="bg-muted p-4 rounded-lg space-y-2">
-                  <p className="text-sm font-medium">Sample Format:</p>
-                  <pre className="text-xs overflow-auto">
-                    {JSON.stringify(sampleData, null, 2)}
+                  <p className="text-sm font-medium">Sample CSV Format:</p>
+                  <pre className="text-xs overflow-auto bg-background p-2 rounded border">
+{sampleCSV}
                   </pre>
                 </div>
 
                 <Button 
                   onClick={handleUpload} 
-                  disabled={!uploadData || uploadMutation.isPending}
+                  disabled={!selectedFile || uploadMutation.isPending}
                   className="w-full"
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  {uploadMutation.isPending ? "Uploading..." : "Upload Data"}
+                  {uploadMutation.isPending ? "Uploading..." : "Upload CSV"}
                 </Button>
 
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg space-y-2">
                   <p className="text-sm font-medium flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Tips for Historical Data
+                    CSV Format Requirements
                   </p>
                   <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
-                    <li>Upload data from multiple time periods for better predictions</li>
-                    <li>Include peak and off-peak hours for comprehensive analysis</li>
-                    <li>Data should represent typical operational conditions</li>
+                    <li>First row must contain headers: timestamp, flowRate, pressure</li>
+                    <li>Timestamp must be in ISO 8601 format (e.g., 2024-01-01T00:00:00Z)</li>
+                    <li>flowRate and pressure must be numeric values</li>
+                    <li>Include data from multiple time periods for better predictions</li>
                     <li>More historical data improves AI prediction accuracy</li>
                   </ul>
                 </div>
