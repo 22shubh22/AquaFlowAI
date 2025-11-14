@@ -550,7 +550,7 @@ export class MemStorage implements IStorage {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
     const aggregated = new Map<string, ZoneHistoricalData[]>();
 
-    for (const record of this.zoneHistory.values()) {
+    for (const record of Array.from(this.zoneHistory.values())) {
       if (record.timestamp >= cutoff) {
         const existing = aggregated.get(record.zoneId) || [];
         existing.push(record);
