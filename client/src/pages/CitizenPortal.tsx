@@ -2,44 +2,66 @@ import { ReportForm } from "@/components/ReportForm";
 import { CitizenReports } from "@/components/CitizenReports";
 import { Card } from "@/components/ui/card";
 import { Droplets, Clock, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 export default function CitizenPortal() {
   const { toast } = useToast();
-  const [reports, setReports] = useState([
-    {
-      id: "R1",
-      type: "No Water Supply",
-      location: "Gandhi Nagar, Block A",
-      description: "No water supply since yesterday morning. Multiple households affected in the area.",
-      status: "investigating" as const,
-      timestamp: "2 hours ago",
-    },
-    {
-      id: "R2",
-      type: "Water Leak",
-      location: "Civil Lines, Main Road",
-      description: "Large water leak near the main pipeline. Water wastage observed.",
-      status: "pending" as const,
-      timestamp: "5 hours ago",
-    },
-  ]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (report: any) => {
-    const newReport = {
-      id: `R${reports.length + 1}`,
-      type: report.type,
-      location: report.location,
-      description: report.description,
-      status: "pending" as const,
-      timestamp: "Just now",
-    };
-    setReports([newReport, ...reports]);
-    toast({
-      title: "Report Submitted",
-      description: "Your water issue has been reported. We'll investigate shortly.",
-    });
+  useEffect(() => {
+    loadReports();
+  }, []);
+
+  const loadReports = async () => {
+    try {
+      const data = await api.getReports();
+      setReports(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load reports",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (report: any) => {
+    try {
+      await api.createReport(report);
+      toast({
+        title: "Report Submitted",
+        description: "Your water issue has been reported. We'll investigate shortly.",
+      });
+      loadReports();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit report",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStatusChange = async (reportId: string, newStatus: string) => {
+    try {
+      await api.updateReportStatus(reportId, newStatus);
+      toast({
+        title: "Status Updated",
+        description: "Report status has been updated successfully.",
+      });
+      loadReports();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -93,7 +115,7 @@ export default function CitizenPortal() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ReportForm onSubmit={handleSubmit} />
-        <CitizenReports reports={reports} />
+        <CitizenReports reports={reports} onStatusChange={handleStatusChange} loading={loading} />
       </div>
     </div>
   );
