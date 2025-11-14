@@ -14,7 +14,6 @@ const citizenReports = pgTable("citizen_reports", {
   geoLat: numeric("geo_lat"),
   geoLng: numeric("geo_lng"),
   description: text("description").notNull(),
-  contact: text("contact").notNull(),
   status: text("status").notNull(),
   timestamp: timestamp("timestamp").notNull(),
   reportHash: text("report_hash"),
