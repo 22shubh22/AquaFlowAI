@@ -480,6 +480,10 @@ class DbStorage {
     };
   }
 
+  async deletePump(id: string): Promise<void> {
+    await db.delete(pumps).where(eq(pumps.id, id));
+  }
+
   // Alert methods
   async getAlerts(): Promise<Alert[]> {
     const result = await db.select().from(alerts).orderBy(desc(alerts.timestamp));

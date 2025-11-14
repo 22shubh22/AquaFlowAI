@@ -5,6 +5,14 @@ async function seedPumps() {
   console.log('⚙️ Seeding pumps...');
   
   try {
+    // Delete existing pumps first
+    const existingPumps = await storage.getPumps();
+    console.log(`Found ${existingPumps.length} existing pumps, deleting...`);
+    for (const pump of existingPumps) {
+      await storage.deletePump(pump.id);
+    }
+    console.log('✅ Deleted all existing pumps');
+    
     // First, get all zones and sources to map them correctly
     const zones = await storage.getZones();
     const sources = await storage.getWaterSources();
