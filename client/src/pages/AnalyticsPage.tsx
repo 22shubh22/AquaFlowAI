@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,22 +5,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, Activity, Droplet, Gauge } from "lucide-react";
 import { api } from "@/lib/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function AnalyticsPage() {
-  const [timeRange, setTimeRange] = useState<number>(24);
+  const [selectedZone, setSelectedZone] = useState<string>("");
+  const [timeRange, setTimeRange] = useState(24);
+  const [activeTab, setActiveTab] = useState("zone");
 
   const { data: zones } = useQuery({
     queryKey: ["zones"],
     queryFn: () => api.get("/api/zones").then(res => res.data)
-  });
-
-  const [selectedZone, setSelectedZone] = useState<string>(zones?.[0]?.id || "RAI-1");
-
-  const { data: zoneHistory } = useQuery({
-    queryKey: ["zone-history", selectedZone, timeRange],
-    queryFn: () => api.get(`/api/historical/zones/${selectedZone}?hours=${timeRange}`).then(res => res.data),
-    enabled: !!selectedZone
   });
 
   const { data: predictions } = useQuery({
@@ -30,10 +23,23 @@ export default function AnalyticsPage() {
     refetchInterval: 60000 // Refresh every minute
   });
 
+  const { data: zoneHistory } = useQuery({
+    queryKey: ["zone-history", selectedZone, timeRange],
+    queryFn: () => api.get(`/api/historical/zones/${selectedZone}?hours=${timeRange}`).then(res => res.data),
+    enabled: !!selectedZone
+  });
+
   const { data: allZoneHistory } = useQuery({
     queryKey: ["all-zone-history", timeRange],
     queryFn: () => api.get(`/api/historical/zones?hours=${timeRange}`).then(res => res.data)
   });
+
+  // Set default zone when zones load
+  useEffect(() => {
+    if (zones && zones.length > 0 && !selectedZone) {
+      setSelectedZone(zones[0].id);
+    }
+  }, [zones, selectedZone]);
 
   // Format data for charts
   const formatHistoricalData = () => {
@@ -48,11 +54,14 @@ export default function AnalyticsPage() {
   // Calculate hourly averages
   const getHourlyAverages = () => {
     if (!allZoneHistory) return [];
-    
+
     const hourlyData: Record<number, { flow: number[], pressure: number[] }> = {};
-    
+
+    // The /api/historical/zones endpoint returns an object where keys are hour numbers,
+    // and values are arrays of records for that hour.
+    // We need to iterate over the values of this object.
     Object.values(allZoneHistory).flat().forEach((record: any) => {
-      const hour = record.hour;
+      const hour = new Date(record.timestamp).getHours(); // Extract hour from timestamp
       if (!hourlyData[hour]) {
         hourlyData[hour] = { flow: [], pressure: [] };
       }
@@ -141,7 +150,7 @@ export default function AnalyticsPage() {
               <div className="flex gap-4">
                 <Select value={selectedZone} onValueChange={setSelectedZone}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select zone" />
+                    <SelectValue placeholder={zones && zones.length > 0 ? "Select zone" : "Loading zones..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {zones && zones.length > 0 ? (
@@ -151,7 +160,7 @@ export default function AnalyticsPage() {
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">No zones available</div>
+                      <SelectItem value="none" disabled>No zones available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
