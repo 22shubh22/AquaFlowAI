@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -64,7 +63,7 @@ export function PumpSchedule({ pumps, zones, sources, onUpdate, isReadOnly = fal
     <Card className="p-6" data-testid="card-pump-schedule">
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Pump Schedule</h3>
-        
+
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
@@ -82,7 +81,7 @@ export function PumpSchedule({ pumps, zones, sources, onUpdate, isReadOnly = fal
               {pumps.map((pump) => (
                 <TableRow key={pump.pumpId} data-testid={`row-pump-${pump.pumpId}`}>
                   <TableCell className="font-medium">{pump.pumpId}</TableCell>
-                  
+
                   {/* Zone */}
                   <TableCell>
                     {editingId === pump.pumpId ? (
@@ -217,7 +216,6 @@ export function PumpSchedule({ pumps, zones, sources, onUpdate, isReadOnly = fal
                       )}
                     </TableCell>
                   )}
-                </TableRow>
                 </TableRow>
               ))}
             </TableBody>
