@@ -6,13 +6,14 @@ export class ReportBlockchain {
    * Generate SHA-256 hash of report data
    */
   static generateHash(data: any): string {
+    // Only hash immutable core data, excluding status since it changes during workflow
     const content = JSON.stringify({
       id: data.id,
       type: data.type,
       location: data.location,
       description: data.description,
       timestamp: data.timestamp,
-      status: data.status,
+      // status is intentionally excluded - it's part of the workflow, not tampering
       previousHash: data.previousHash || '0',
     });
     return crypto.createHash('sha256').update(content).digest('hex');
