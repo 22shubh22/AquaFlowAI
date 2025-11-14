@@ -383,7 +383,7 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="contact">Contact Number</Label>
+          <Label htmlFor="contact">Contact Number *</Label>
           <Input
             id="contact"
             type="tel"
