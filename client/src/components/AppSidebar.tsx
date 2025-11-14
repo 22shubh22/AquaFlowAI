@@ -39,6 +39,11 @@ export function AppSidebar() {
       icon: FileText,
     },
     {
+      title: "Citizen Users",
+      url: "/citizen-users",
+      icon: Users,
+    },
+    {
       title: "Water Sources",
       url: "/sources",
       icon: Droplets,

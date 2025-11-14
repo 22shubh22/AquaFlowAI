@@ -64,6 +64,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Citizen Users Management API (Admin only)
+  app.get("/api/citizen-users", async (req, res) => {
+    const users = await storage.getCitizenUsers();
+    res.json(users);
+  });
+
   // Water Sources API
   app.get("/api/water-sources", async (req, res) => {
     const sources = await storage.getWaterSources();

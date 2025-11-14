@@ -134,42 +134,14 @@ export const api = {
   },
 
   getBlockchainStats: async () => {
-    const response = await fetch('/api/blockchain/stats');
-    if (!response.ok) throw new Error('Failed to get blockchain stats');
+    const response = await fetch("/api/blockchain/stats");
+    if (!response.ok) throw new Error("Failed to fetch blockchain stats");
     return response.json();
   },
 
-  // Analytics
-  getDemandPrediction: async () => {
-    const res = await fetch(`${API_BASE}/analytics/demand-prediction`);
-    return res.json();
+  async getCitizenUsers() {
+    const response = await fetch("/api/citizen-users");
+    if (!response.ok) throw new Error("Failed to fetch citizen users");
+    return response.json();
   },
-
-  getOptimizationSuggestions: async () => {
-    const res = await fetch(`${API_BASE}/analytics/optimization-suggestions`);
-    return res.json();
-  },
-
-  // AI-powered features
-  getAnomalies: async () => {
-    const res = await fetch(`${API_BASE}/analytics/anomalies`);
-    return res.json();
-  },
-
-  getOptimalSchedules: async () => {
-    const res = await fetch(`${API_BASE}/analytics/optimal-schedules`);
-    return res.json();
-  },
-
-  getEquityScore: async () => {
-    const res = await fetch(`${API_BASE}/analytics/equity-score`);
-    return res.json();
-  },
-
-  // Generic methods
-  get: async (url: string) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Request failed');
-    return res;
-  }
 };

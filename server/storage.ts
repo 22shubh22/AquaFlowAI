@@ -190,6 +190,16 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getCitizenUsers(): Promise<Array<CitizenUser & { reportCount: number }>> {
+    const users = Array.from(this.citizenUsers.values());
+    const reports = Array.from(this.reports.values());
+    
+    return users.map(user => ({
+      ...user,
+      reportCount: reports.filter(r => r.contact.includes(user.username) || r.contact.includes(user.email)).length
+    }));
+  }
+
   async createCitizenUser(insertUser: Omit<CitizenUser, 'id' | 'createdAt'>): Promise<CitizenUser> {
     const id = randomUUID();
     const user: CitizenUser = { ...insertUser, id, createdAt: new Date() };
