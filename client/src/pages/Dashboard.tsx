@@ -14,12 +14,14 @@ import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const [alerts, setAlerts] = useState<any[]>([]);
   const [realTimeData, setRealTimeData] = useState<any[]>([]);
+  const [selectedZoneFilter, setSelectedZoneFilter] = useState<string>('all');
 
   // Real-time data fetching with 5-second intervals
   const { data: zones, refetch: refetchZones } = useQuery({
@@ -448,8 +450,30 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="zone-wise" className="space-y-4">
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>Filter by Zone</CardTitle>
+              <CardDescription>Select a zone to view its detailed trends</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select value={selectedZoneFilter} onValueChange={setSelectedZoneFilter}>
+                <SelectTrigger className="w-full md:w-[300px]">
+                  <SelectValue placeholder="All Zones" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Zones</SelectItem>
+                  {zones?.map((zone: any) => (
+                    <SelectItem key={zone.id} value={zone.id}>
+                      {zone.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 gap-6">
-            {zones?.map((zone: any) => (
+            {zones?.filter((zone: any) => selectedZoneFilter === 'all' || zone.id === selectedZoneFilter).map((zone: any) => (
               <React.Fragment key={zone.id}>
                 <Card>
                   <CardHeader>
