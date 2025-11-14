@@ -1,4 +1,3 @@
-
 import { MetricCard } from "@/components/MetricCard";
 import { ZoneMap } from "@/components/ZoneMap";
 import { AlertsList } from "@/components/AlertsList";
@@ -29,13 +28,19 @@ export default function Dashboard() {
 
   const { data: pumps, refetch: refetchPumps } = useQuery({
     queryKey: ["pumps"],
-    queryFn: () => api.get("/api/pumps").then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get("/api/pumps");
+      return res.json();
+    },
     refetchInterval: 5000
   });
 
   const { data: waterSources } = useQuery({
     queryKey: ["water-sources"],
-    queryFn: () => api.get("/api/water-sources").then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get("/api/water-sources");
+      return res.json();
+    },
     refetchInterval: 5000
   });
 
@@ -74,7 +79,7 @@ export default function Dashboard() {
     const interval = setInterval(() => {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      
+
       setRealTimeData(prev => {
         const newData = [...prev, {
           time: timeStr,
@@ -407,8 +412,8 @@ export default function Dashboard() {
               <CardContent>
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={waterSources ? waterSources.map((s: any) => ({ 
-                      name: s.name, 
+                    <BarChart data={waterSources ? waterSources.map((s: any) => ({
+                      name: s.name,
                       current: s.currentLevel,
                       capacity: 100
                     })) : []}>
