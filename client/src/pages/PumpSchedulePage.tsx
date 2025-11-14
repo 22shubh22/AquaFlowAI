@@ -14,11 +14,11 @@ export default function PumpSchedulePage() {
     queryKey: ['/api/pumps'],
   });
 
-  const { data: zones = [] } = useQuery<Zone[]>({
+  const { data: zones = [], isLoading: zonesLoading } = useQuery<Zone[]>({
     queryKey: ['/api/zones'],
   });
 
-  const { data: sources = [] } = useQuery<WaterSource[]>({
+  const { data: sources = [], isLoading: sourcesLoading } = useQuery<WaterSource[]>({
     queryKey: ['/api/water-sources'],
   });
 
@@ -52,13 +52,21 @@ export default function PumpSchedulePage() {
     updatePumpMutation.mutate({ id, data });
   };
 
-  if (pumpsLoading) {
+  if (pumpsLoading || zonesLoading || sourcesLoading) {
     return <div>Loading...</div>;
   }
 
+  console.log('Pumps:', pumps);
+  console.log('Zones:', zones);
+  console.log('Sources:', sources);
+
   const pumpData = pumps.map(pump => {
+    console.log('Processing pump:', pump.id, 'zoneId:', pump.zoneId, 'sourceId:', pump.sourceId);
     const zone = zones.find(z => z.id === pump.zoneId);
     const source = sources.find(s => s.id === pump.sourceId);
+    
+    if (!zone) console.warn('Zone not found for pump', pump.id, 'with zoneId:', pump.zoneId);
+    if (!source) console.warn('Source not found for pump', pump.id, 'with sourceId:', pump.sourceId);
     
     return {
       id: pump.id,
