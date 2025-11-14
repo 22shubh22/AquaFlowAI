@@ -12,10 +12,17 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState(24);
   const [activeTab, setActiveTab] = useState("zone");
 
-  const { data: zones } = useQuery({
+  const { data: zones, isLoading: zonesLoading, error: zonesError } = useQuery({
     queryKey: ["zones"],
     queryFn: () => api.get("/api/zones").then(res => res.data)
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Zones data:", zones);
+    console.log("Zones loading:", zonesLoading);
+    console.log("Zones error:", zonesError);
+  }, [zones, zonesLoading, zonesError]);
 
   const { data: predictions } = useQuery({
     queryKey: ["demand-predictions"],
@@ -150,10 +157,18 @@ export default function AnalyticsPage() {
               <div className="flex gap-4">
                 <Select value={selectedZone} onValueChange={setSelectedZone}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder={zones && zones.length > 0 ? "Select zone" : "Loading zones..."} />
+                    <SelectValue placeholder={
+                      zonesLoading ? "Loading zones..." : 
+                      zonesError ? "Error loading zones" :
+                      zones && zones.length > 0 ? "Select zone" : "No zones available"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {zones && zones.length > 0 ? (
+                    {zonesLoading ? (
+                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    ) : zonesError ? (
+                      <SelectItem value="error" disabled>Error loading zones</SelectItem>
+                    ) : zones && zones.length > 0 ? (
                       zones.map((zone: any) => (
                         <SelectItem key={zone.id} value={zone.id}>
                           {zone.name}

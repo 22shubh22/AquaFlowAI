@@ -3,6 +3,15 @@ import type { Zone, Pump, Alert, CitizenReport, WaterSource } from "@shared/sche
 const API_BASE = "/api";
 
 export const api = {
+  // Generic GET method
+  get: async (url: string) => {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch ${url}`);
+    }
+    return res;
+  },
+
   // Authentication
   login: async (username: string, password: string, expectedRole?: "admin" | "citizen") => {
     const res = await fetch(`${API_BASE}/auth/login`, {
