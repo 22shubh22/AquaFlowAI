@@ -4,6 +4,7 @@ import { AlertsList } from "@/components/AlertsList";
 import { FlowChart } from "@/components/FlowChart";
 import { AIInsights } from "@/components/AIInsights";
 import { AIEquityDashboard } from "@/components/AIEquityDashboard";
+import { ZoneHistoricalChart } from "@/components/ZoneHistoricalChart";
 import { Droplets, Gauge, Activity, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -191,6 +192,7 @@ export default function Dashboard() {
           <TabsTrigger value="pumps">Pump Analytics</TabsTrigger>
           <TabsTrigger value="pressure">Pressure Analytics</TabsTrigger>
           <TabsTrigger value="flow">Consumption Analytics</TabsTrigger>
+          <TabsTrigger value="zone-wise">Zone-Wise Trends</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -441,6 +443,57 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="zone-wise" className="space-y-4">
+          <div className="grid grid-cols-1 gap-6">
+            {zones?.map((zone: any) => (
+              <Card key={zone.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>{zone.name}</CardTitle>
+                      <CardDescription>Population: {zone.population.toLocaleString()}</CardDescription>
+                    </div>
+                    <Badge variant={
+                      zone.status === 'optimal' ? 'default' :
+                      zone.status === 'low-pressure' ? 'destructive' :
+                      zone.status === 'high-demand' ? 'secondary' : 'outline'
+                    }>
+                      {zone.status.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="flex items-center gap-2 p-3 border rounded-lg">
+                      <Droplets className="h-8 w-8 text-chart-1" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Consumption Rate</p>
+                        <p className="text-xl font-bold">{zone.flowRate} L/h</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 border rounded-lg">
+                      <Gauge className="h-8 w-8 text-chart-2" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pressure</p>
+                        <p className="text-xl font-bold">{zone.pressure} PSI</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 border rounded-lg">
+                      <Activity className="h-8 w-8 text-chart-3" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Per Capita</p>
+                        <p className="text-xl font-bold">{Math.round(zone.flowRate / (zone.population / 1000))} L/h/K</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <ZoneHistoricalChart zoneId={zone.id} zoneName={zone.name} />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
       </Tabs>
