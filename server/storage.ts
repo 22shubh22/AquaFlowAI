@@ -257,8 +257,8 @@ class DbStorage {
     };
   }
 
-  async createZone(zone: InsertZone): Promise<Zone> {
-    const id = `Z${Date.now()}`;
+  async createZone(zone: InsertZone & { id?: string }): Promise<Zone> {
+    const id = zone.id || `Z${Date.now()}`;
     const result = await db.insert(zones).values({
       id,
       name: zone.name,
@@ -309,6 +309,10 @@ class DbStorage {
     await db.delete(zones).where(eq(zones.id, id));
   }
 
+  async deleteAllZones(): Promise<void> {
+    await db.delete(zones);
+  }
+
   // Water Source methods
   async getWaterSources(): Promise<WaterSource[]> {
     const result = await db.select().from(waterSources);
@@ -344,8 +348,8 @@ class DbStorage {
     };
   }
 
-  async createWaterSource(source: InsertWaterSource): Promise<WaterSource> {
-    const id = `S${Date.now()}`;
+  async createWaterSource(source: InsertWaterSource & { id?: string }): Promise<WaterSource> {
+    const id = source.id || `S${Date.now()}`;
     const result = await db.insert(waterSources).values({
       id,
       name: source.name,
@@ -407,6 +411,10 @@ class DbStorage {
 
   async deleteWaterSource(id: string): Promise<void> {
     await db.delete(waterSources).where(eq(waterSources.id, id));
+  }
+
+  async deleteAllWaterSources(): Promise<void> {
+    await db.delete(waterSources);
   }
 
   // Pump methods
