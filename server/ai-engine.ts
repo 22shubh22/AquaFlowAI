@@ -292,17 +292,26 @@ export class AIEngine {
   calculateEquityScore(zones: Zone[]): number {
     if (zones.length === 0) return 100;
     
-    // Calculate per-capita flow rate for each zone
-    const perCapitaFlows = zones.map(z => z.flowRate / (z.population / 1000));
+    // Filter out zones with no population to avoid division by zero
+    const validZones = zones.filter(z => z.population && z.population > 0 && z.flowRate);
+    if (validZones.length === 0) return 0;
+    
+    // Calculate per-capita flow rate for each zone (liters per person per hour)
+    const perCapitaFlows = validZones.map(z => z.flowRate / z.population);
     
     // Calculate coefficient of variation (lower is more equitable)
     const mean = perCapitaFlows.reduce((sum, val) => sum + val, 0) / perCapitaFlows.length;
+    
+    if (mean === 0) return 0;
+    
     const variance = this.calculateVariance(perCapitaFlows);
     const stdDev = Math.sqrt(variance);
     const coefficientOfVariation = stdDev / mean;
     
     // Convert to 0-100 score (lower CV = higher score)
-    const equityScore = Math.max(0, 100 - (coefficientOfVariation * 100));
+    // CV of 0 = perfect equity (score 100)
+    // CV of 1 or more = very poor equity (score 0)
+    const equityScore = Math.max(0, Math.min(100, 100 - (coefficientOfVariation * 100)));
     
     return Math.round(equityScore);
   }

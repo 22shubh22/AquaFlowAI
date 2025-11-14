@@ -299,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/historical/zones/upload", async (req, res) => {
     try {
       const { zoneId, data } = req.body;
-      
+
       if (!zoneId || !data || !Array.isArray(data)) {
         return res.status(400).json({ error: "Invalid data format. Expected { zoneId, data: [] }" });
       }
@@ -432,6 +432,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error generating pump schedules:', error);
       res.status(500).json({ error: 'Failed to generate pump schedules' });
     }
+  });
+
+  // Distribution Equity Score API
+  app.get("/api/analytics/equity-score", async (req, res) => {
+    const zones = await storage.getZones();
+    if (!zones || zones.length === 0) {
+      return res.json({ score: 0 });
+    }
+    const score = aiEngine.calculateEquityScore(zones);
+    res.json({ score: score || 0 });
   });
 
   const httpServer = createServer(app);
