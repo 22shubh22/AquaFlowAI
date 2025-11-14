@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Upload, Search } from "lucide-react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, Rectangle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -28,8 +28,29 @@ function DraggableMarker({ position, onPositionChange }: DraggableMarkerProps) {
   const [draggable, setDraggable] = useState(true);
   const [markerPos, setMarkerPos] = useState<[number, number]>(position);
 
+  // Raipur city bounds
+  const RAIPUR_BOUNDS = {
+    minLat: 21.15,
+    maxLat: 21.35,
+    minLng: 81.55,
+    maxLng: 81.75,
+  };
+
+  const isWithinRaipur = (lat: number, lng: number) => {
+    return (
+      lat >= RAIPUR_BOUNDS.minLat &&
+      lat <= RAIPUR_BOUNDS.maxLat &&
+      lng >= RAIPUR_BOUNDS.minLng &&
+      lng <= RAIPUR_BOUNDS.maxLng
+    );
+  };
+
   useMapEvents({
     click(e) {
+      if (!isWithinRaipur(e.latlng.lat, e.latlng.lng)) {
+        alert("Please select a location within Raipur city limits.");
+        return;
+      }
       const newPos: [number, number] = [e.latlng.lat, e.latlng.lng];
       setMarkerPos(newPos);
       onPositionChange(e.latlng.lat, e.latlng.lng);
@@ -44,6 +65,13 @@ function DraggableMarker({ position, onPositionChange }: DraggableMarkerProps) {
         dragend: (e) => {
           const marker = e.target;
           const position = marker.getLatLng();
+          
+          if (!isWithinRaipur(position.lat, position.lng)) {
+            alert("Please select a location within Raipur city limits.");
+            setMarkerPos(markerPos); // Reset to previous position
+            return;
+          }
+          
           setMarkerPos([position.lat, position.lng]);
           onPositionChange(position.lat, position.lng);
         },
@@ -70,6 +98,23 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Raipur city bounds (approximate)
+  const RAIPUR_BOUNDS = {
+    minLat: 21.15,
+    maxLat: 21.35,
+    minLng: 81.55,
+    maxLng: 81.75,
+  };
+
+  const isWithinRaipur = (lat: number, lng: number) => {
+    return (
+      lat >= RAIPUR_BOUNDS.minLat &&
+      lat <= RAIPUR_BOUNDS.maxLat &&
+      lng >= RAIPUR_BOUNDS.minLng &&
+      lng <= RAIPUR_BOUNDS.maxLng
+    );
+  };
+
   const handleAddressSearch = async (query: string) => {
     setSearchAddress(query);
     if (query.length < 3) {
@@ -80,11 +125,21 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
     setIsSearching(true);
     try {
       // Using Nominatim (OpenStreetMap) geocoding service
+      // Adding viewbox parameter to prioritize Raipur area
+      const viewbox = `${RAIPUR_BOUNDS.minLng},${RAIPUR_BOUNDS.maxLat},${RAIPUR_BOUNDS.maxLng},${RAIPUR_BOUNDS.minLat}`;
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Raipur, Chhattisgarh')}&limit=10&viewbox=${viewbox}&bounded=1`
       );
       const data = await response.json();
-      setAddressSuggestions(data);
+      
+      // Filter results to only include locations within Raipur bounds
+      const raipurResults = data.filter((result: any) => {
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+        return isWithinRaipur(lat, lng);
+      });
+      
+      setAddressSuggestions(raipurResults);
     } catch (error) {
       console.error("Geocoding error:", error);
       setAddressSuggestions([]);
@@ -96,6 +151,12 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
   const handleSelectAddress = (suggestion: any) => {
     const lat = parseFloat(suggestion.lat);
     const lng = parseFloat(suggestion.lon);
+    
+    if (!isWithinRaipur(lat, lng)) {
+      alert("Please select a location within Raipur city limits.");
+      return;
+    }
+    
     setFormData({
       ...formData,
       location: suggestion.display_name,
@@ -198,7 +259,7 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
           <div className="h-[300px] rounded-lg overflow-hidden border-2 border-border mt-2">
             <MapContainer
               center={[formData.lat, formData.lng]}
-              zoom={13}
+              zoom={12}
               style={{ height: '100%', width: '100%' }}
               scrollWheelZoom={true}
               key={`${formData.lat}-${formData.lng}`}
