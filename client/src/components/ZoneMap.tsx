@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
@@ -73,8 +72,8 @@ export function ZoneMap({ zones, onZoneClick }: ZoneMapProps) {
           <div className="flex gap-3 flex-wrap">
             {Object.entries(statusConfig).map(([key, config]) => (
               <div key={key} className="flex items-center gap-2">
-                <div 
-                  className="h-3 w-3 rounded-full" 
+                <div
+                  className="h-3 w-3 rounded-full"
                   style={{ backgroundColor: config.color }}
                 />
                 <span className="text-sm text-muted-foreground">{config.label}</span>
@@ -82,7 +81,7 @@ export function ZoneMap({ zones, onZoneClick }: ZoneMapProps) {
             ))}
           </div>
         </div>
-        
+
         <div className="relative h-[400px] md:h-[500px] rounded-lg overflow-hidden border-2 border-border">
           <MapContainer
             center={raipurCenter}
@@ -94,7 +93,7 @@ export function ZoneMap({ zones, onZoneClick }: ZoneMapProps) {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            
+
             {zones.map((zone) => {
               const config = statusConfig[zone.status];
               return (
@@ -129,8 +128,8 @@ export function ZoneMap({ zones, onZoneClick }: ZoneMapProps) {
                             </Badge>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Flow Rate:</span>
-                            <span className="font-medium">{zone.flowRate}</span>
+                            <span className="text-muted-foreground">Consumption:</span>
+                            <span className="font-medium">{zone.flowRate} L/h</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Pressure:</span>

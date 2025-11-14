@@ -49,13 +49,16 @@ export default function Dashboard() {
 
   const { data: anomalies } = useQuery({
     queryKey: ["anomalies"],
-    queryFn: api.getAnomalies,
+    queryFn: async () => {
+      const data = await api.getAnomalies();
+      return data || [];
+    },
     refetchInterval: 10000
   });
 
   // Calculate real-time metrics
   const metrics = {
-    totalFlow: zones ? zones.reduce((sum: number, z: any) => sum + parseFloat(z.flowRate), 0) : 0,
+    totalConsumption: zones ? zones.reduce((sum: number, z: any) => sum + parseFloat(z.flowRate), 0) : 0,
     avgPressure: zones ? zones.reduce((sum: number, z: any) => sum + parseFloat(z.pressure), 0) / zones.length : 0,
     activePumps: pumps ? pumps.filter((p: any) => p.status === 'active').length : 0,
     totalPumps: pumps ? pumps.length : 0,
@@ -86,7 +89,7 @@ export default function Dashboard() {
       setRealTimeData(prev => {
         const newData = [...prev, {
           time: timeStr,
-          flow: metrics.totalFlow,
+          consumption: metrics.totalConsumption,
           pressure: metrics.avgPressure
         }];
         return newData.slice(-20); // Keep last 20 data points
@@ -148,8 +151,8 @@ export default function Dashboard() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Total Flow Rate"
-          value={`${(metrics.totalFlow / 1000).toFixed(1)}K L/h`}
+          title="Total Water Consumption"
+          value={`${(metrics.totalConsumption / 1000).toFixed(1)}K L/h`}
           icon={Droplets}
           trend={{ value: 12, isPositive: true }}
           status="normal"
@@ -181,7 +184,7 @@ export default function Dashboard() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="pumps">Pump Analytics</TabsTrigger>
           <TabsTrigger value="pressure">Pressure Analytics</TabsTrigger>
-          <TabsTrigger value="flow">Flow Analytics</TabsTrigger>
+          <TabsTrigger value="flow">Consumption Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -234,7 +237,7 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Real-Time Flow & Pressure</CardTitle>
+                <CardTitle>Real-Time Consumption & Pressure</CardTitle>
                 <CardDescription>Last 2 minutes of data</CardDescription>
               </CardHeader>
               <CardContent>
@@ -247,7 +250,7 @@ export default function Dashboard() {
                       <YAxis yAxisId="right" orientation="right" className="text-xs" />
                       <Tooltip />
                       <Legend />
-                      <Line yAxisId="left" type="monotone" dataKey="flow" stroke="hsl(var(--chart-1))" name="Flow (L/h)" strokeWidth={2} dot={false} />
+                      <Line yAxisId="left" type="monotone" dataKey="consumption" stroke="hsl(var(--chart-1))" name="Consumption (L/h)" strokeWidth={2} dot={false} />
                       <Line yAxisId="right" type="monotone" dataKey="pressure" stroke="hsl(var(--chart-2))" name="Pressure (PSI)" strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -298,7 +301,7 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-4 border rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Active Pumps Flow Rate</p>
+                      <p className="text-sm font-medium">Active Pumps Delivery Rate</p>
                       <p className="text-2xl font-bold text-chart-2">
                         {pumps ? Math.round(pumps.filter((p: any) => p.status === 'active').reduce((sum: number, p: any) => sum + parseFloat(p.flowRate), 0)) : 0} L/h
                       </p>
@@ -389,18 +392,18 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Water Flow by Zone</CardTitle>
-                <CardDescription>Current flow rates across zones</CardDescription>
+                <CardTitle>Water Consumption by Zone</CardTitle>
+                <CardDescription>Current consumption rates across zones</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={zones ? zones.map((z: any) => ({ name: z.name, flow: parseFloat(z.flowRate) })) : []}>
+                    <BarChart data={zones ? zones.map((z: any) => ({ name: z.name, consumption: parseFloat(z.flowRate) })) : []}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis dataKey="name" className="text-xs" angle={-45} textAnchor="end" height={100} />
-                      <YAxis className="text-xs" label={{ value: 'Flow Rate (L/h)', angle: -90, position: 'insideLeft' }} />
+                      <YAxis className="text-xs" label={{ value: 'Consumption Rate (L/h)', angle: -90, position: 'insideLeft' }} />
                       <Tooltip />
-                      <Bar dataKey="flow" fill="hsl(var(--chart-1))" />
+                      <Bar dataKey="consumption" fill="hsl(var(--chart-1))" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
