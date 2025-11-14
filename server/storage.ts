@@ -759,11 +759,10 @@ class DbStorage {
     }));
   }
 
-  async getPopulationHistory(zoneId: string, hours: number): Promise<PopulationHistory[]> {
-    const cutoffTime = new Date(Date.now() - hours * 3600000);
+  async getPopulationHistory(zoneId: string): Promise<PopulationHistory[]> {
     const results = await db.select()
       .from(populationHistory)
-      .where(and(eq(populationHistory.zoneId, zoneId), gte(populationHistory.timestamp, cutoffTime)))
+      .where(eq(populationHistory.zoneId, zoneId))
       .orderBy(populationHistory.timestamp);
 
     return results.map(record => ({

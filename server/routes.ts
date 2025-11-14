@@ -283,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(history);
   });
 
-  // Get population history for a zone
+  // Get population history for a zone (all yearly data)
   app.get("/api/historical/population/:zoneId", async (req, res) => {
     try {
       const { zoneId } = req.params;
