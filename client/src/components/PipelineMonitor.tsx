@@ -12,7 +12,10 @@ export function PipelineMonitor() {
 
   const { data: zones } = useQuery({
     queryKey: ["zones"],
-    queryFn: () => api.get("/api/zones").then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get("/api/zones");
+      return res.json();
+    },
     refetchInterval: 5000
   });
 

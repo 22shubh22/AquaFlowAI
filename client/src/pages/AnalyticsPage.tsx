@@ -14,7 +14,10 @@ export default function AnalyticsPage() {
 
   const { data: zones, isLoading: zonesLoading, error: zonesError } = useQuery({
     queryKey: ["zones"],
-    queryFn: () => api.get("/api/zones").then(res => res.data)
+    queryFn: async () => {
+      const res = await api.get("/api/zones");
+      return res.json();
+    }
   });
 
   // Debug logging
@@ -26,19 +29,28 @@ export default function AnalyticsPage() {
 
   const { data: predictions } = useQuery({
     queryKey: ["demand-predictions"],
-    queryFn: () => api.get("/api/analytics/demand-prediction").then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get("/api/analytics/demand-prediction");
+      return res.json();
+    },
     refetchInterval: 60000 // Refresh every minute
   });
 
   const { data: zoneHistory } = useQuery({
     queryKey: ["zone-history", selectedZone, timeRange],
-    queryFn: () => api.get(`/api/historical/zones/${selectedZone}?hours=${timeRange}`).then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get(`/api/historical/zones/${selectedZone}?hours=${timeRange}`);
+      return res.json();
+    },
     enabled: !!selectedZone
   });
 
   const { data: allZoneHistory } = useQuery({
     queryKey: ["all-zone-history", timeRange],
-    queryFn: () => api.get(`/api/historical/zones?hours=${timeRange}`).then(res => res.data)
+    queryFn: async () => {
+      const res = await api.get(`/api/historical/zones?hours=${timeRange}`);
+      return res.json();
+    }
   });
 
   // Set default zone when zones load
