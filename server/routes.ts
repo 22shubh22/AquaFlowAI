@@ -184,6 +184,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(pump);
   });
 
+  app.post("/api/pumps", async (req, res) => {
+    try {
+      const newPump = await storage.createPump(req.body);
+      res.status(201).json(newPump);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create pump" });
+    }
+  });
+
   app.patch("/api/pumps/:id", async (req, res) => {
     try {
       const updated = await storage.updatePump(req.params.id, req.body);
