@@ -13,7 +13,8 @@ export function PopulationHistoryChart({ zoneId, zoneName }: PopulationHistoryCh
   const { data: populationHistory, isLoading } = useQuery({
     queryKey: ["population-history", zoneId],
     queryFn: async () => {
-      const res = await api.get(`/api/historical/population/${zoneId}?hours=720`);
+      // Fetch all population history (no time limit for yearly data)
+      const res = await api.get(`/api/historical/population/${zoneId}`);
       return res.json();
     },
     refetchInterval: 60000 // Refresh every minute
@@ -36,10 +37,7 @@ export function PopulationHistoryChart({ zoneId, zoneName }: PopulationHistoryCh
   }
 
   const chartData = populationHistory.map((h: any) => ({
-    time: new Date(h.timestamp).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    }),
+    time: new Date(h.timestamp).getFullYear().toString(),
     population: h.population
   })).reverse(); // Reverse to show oldest to newest
 
@@ -51,6 +49,10 @@ export function PopulationHistoryChart({ zoneId, zoneName }: PopulationHistoryCh
     ? ((trend / chartData[0].population) * 100).toFixed(2)
     : "0";
 
+  const yearsSpan = chartData.length > 1 
+    ? `${chartData[0].time} - ${chartData[chartData.length - 1].time}`
+    : chartData[0]?.time || 'N/A';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -61,7 +63,7 @@ export function PopulationHistoryChart({ zoneId, zoneName }: PopulationHistoryCh
             <TrendingDown className="h-5 w-5 text-red-500" />
           ) : null}
           <span className="text-sm text-muted-foreground">
-            {trend > 0 ? '+' : ''}{trend.toLocaleString()} ({trend > 0 ? '+' : ''}{trendPercentage}%) over 30 days
+            {trend > 0 ? '+' : ''}{trend.toLocaleString()} ({trend > 0 ? '+' : ''}{trendPercentage}%) over {chartData.length} years
           </span>
         </div>
         <span className="text-sm font-medium">
@@ -76,6 +78,8 @@ export function PopulationHistoryChart({ zoneId, zoneName }: PopulationHistoryCh
               dataKey="time" 
               className="text-xs"
               tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              interval="preserveStartEnd"
+              label={{ value: 'Year', position: 'insideBottom', offset: -5, style: { fontSize: '12px' } }}
             />
             <YAxis 
               className="text-xs"

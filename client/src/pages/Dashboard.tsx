@@ -498,7 +498,7 @@ export default function Dashboard() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Population Trend - {zone.name}</CardTitle>
-                    <CardDescription>30-day population history</CardDescription>
+                    <CardDescription>30-year population history</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <PopulationHistoryChart zoneId={zone.id} zoneName={zone.name} />
