@@ -117,3 +117,51 @@ export interface PumpHistory {
   timestamp: Date;
   duration: number;
 }
+
+export const insertZoneSchema = z.object({
+  name: z.string().min(1),
+  status: z.enum(["optimal", "low-pressure", "high-demand"]),
+  flowRate: z.number().positive(),
+  pressure: z.number().positive(),
+  lat: z.number(),
+  lng: z.number(),
+});
+
+export const insertWaterSourceSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["river", "lake", "borewell", "reservoir"]),
+  location: z.string().min(1),
+  geoLocation: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  capacity: z.number().positive(),
+  currentLevel: z.number().min(0).max(100),
+  quality: z.enum(["excellent", "good", "fair", "poor"]),
+  lastTested: z.date().optional(),
+  status: z.enum(["active", "inactive", "maintenance"]),
+});
+
+export const insertCitizenUserSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(6),
+  email: z.string().email(),
+  phone: z.string().min(10),
+});
+
+export const insertCitizenReportSchema = z.object({
+  type: z.string().min(1),
+  location: z.string().min(1),
+  geoLocation: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
+  description: z.string().min(10),
+  contact: z.string().min(1),
+  images: z.array(z.string()).optional(),
+});
+
+export type InsertZone = z.infer<typeof insertZoneSchema>;
+export type InsertWaterSource = z.infer<typeof insertWaterSourceSchema>;
+export type InsertCitizenUser = z.infer<typeof insertCitizenUserSchema>;
+export type InsertCitizenReport = z.infer<typeof insertCitizenReportSchema>;
