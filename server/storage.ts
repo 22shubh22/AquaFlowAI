@@ -181,14 +181,24 @@ class DbStorage {
   // Citizen User methods
   async getCitizenUsers(): Promise<CitizenUser[]> {
     const result = await db.select().from(citizenUsers);
-    return result.map(row => ({
-      id: row.id!,
-      username: row.username,
-      password: row.password,
-      email: row.email,
-      phone: row.phone,
-      createdAt: row.createdAt!,
-    }));
+    
+    // Count reports for each user
+    const usersWithReportCount = await Promise.all(
+      result.map(async (row) => {
+        const reports = await db.select().from(citizenReports).where(eq(citizenReports.contact, row.username));
+        return {
+          id: row.id!,
+          username: row.username,
+          password: row.password,
+          email: row.email,
+          phone: row.phone,
+          createdAt: row.createdAt!,
+          reportCount: reports.length,
+        };
+      })
+    );
+    
+    return usersWithReportCount;
   }
 
   async getCitizenUserByUsername(username: string): Promise<CitizenUser | null> {

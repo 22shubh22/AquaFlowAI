@@ -68,6 +68,7 @@ export interface CitizenUser {
   email: string;
   phone: string;
   createdAt: Date;
+  reportCount?: number;
 }
 
 export interface CitizenReport {
