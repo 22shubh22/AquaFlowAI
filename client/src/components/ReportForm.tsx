@@ -359,7 +359,7 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="location">Location Details</Label>
+          <Label htmlFor="location">Location Details *</Label>
           <Input
             id="location"
             value={formData.location}
@@ -371,7 +371,7 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">Description *</Label>
           <Textarea
             id="description"
             value={formData.description}
