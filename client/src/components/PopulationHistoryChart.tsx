@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";

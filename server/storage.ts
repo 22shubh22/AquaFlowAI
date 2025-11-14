@@ -2,11 +2,11 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, desc, and, gte } from 'drizzle-orm';
 import * as schema from '../shared/schema';
-import type { 
-  Zone, 
-  WaterSource, 
-  Pump, 
-  Alert, 
+import type {
+  Zone,
+  WaterSource,
+  Pump,
+  Alert,
   CitizenUser,
   CitizenReport,
   ZoneHistoricalData,
@@ -17,7 +17,8 @@ import type {
   InsertCitizenUser,
   InsertCitizenReport,
   User,
-  InsertUser
+  InsertUser,
+  PopulationHistory
 } from '../shared/schema';
 import { ReportBlockchain } from './blockchain';
 
@@ -279,13 +280,13 @@ class DbStorage {
       population: zone.population,
     }).returning();
     const row = result[0];
-    
+
     // Record initial population in history
     await db.insert(populationHistory).values({
       zoneId: id,
       population: zone.population,
     });
-    
+
     return {
       id: row.id,
       name: row.name,
@@ -760,15 +761,16 @@ class DbStorage {
 
   async getPopulationHistory(zoneId: string, hours: number): Promise<PopulationHistory[]> {
     const cutoffTime = new Date(Date.now() - hours * 3600000);
-    const result = await db.select().from(populationHistory)
+    const results = await db.select()
+      .from(populationHistory)
       .where(and(eq(populationHistory.zoneId, zoneId), gte(populationHistory.timestamp, cutoffTime)))
-      .orderBy(desc(populationHistory.timestamp));
+      .orderBy(populationHistory.timestamp);
 
-    return result.map(row => ({
-      id: row.id!,
-      zoneId: row.zoneId,
-      population: row.population,
-      timestamp: row.timestamp!,
+    return results.map(record => ({
+      id: record.id!,
+      zoneId: record.zoneId,
+      population: Number(record.population),
+      timestamp: record.timestamp!,
     }));
   }
 }
