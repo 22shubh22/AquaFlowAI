@@ -44,21 +44,37 @@ async function seedHistoricalData() {
         // Calculate flow rate based on time of day patterns
         let flowMultiplier = 1.0;
         
-        // Morning peak (6-9 AM)
-        if (hour >= 6 && hour < 9) {
+        // Night (10 PM - 5 AM) - very low consumption (sleeping hours)
+        if (hour >= 22 || hour < 5) {
+          flowMultiplier = 0.3 + (Math.random() * 0.15);
+        }
+        // Early morning (5-6 AM) - starting to wake up
+        else if (hour >= 5 && hour < 6) {
+          flowMultiplier = 0.5 + (Math.random() * 0.2);
+        }
+        // Morning peak (6-9 AM) - breakfast, bathing, getting ready
+        else if (hour >= 6 && hour < 9) {
           flowMultiplier = 1.3 + (Math.random() * 0.2);
         }
-        // Evening peak (6-9 PM)
+        // Late morning (9 AM - 12 PM) - moderate usage
+        else if (hour >= 9 && hour < 12) {
+          flowMultiplier = 0.7 + (Math.random() * 0.2);
+        }
+        // Afternoon (12 PM - 5 PM) - lunch time spike, then moderate
+        else if (hour >= 12 && hour < 17) {
+          flowMultiplier = 0.8 + (Math.random() * 0.25);
+        }
+        // Early evening (5-6 PM) - people returning home
+        else if (hour >= 17 && hour < 18) {
+          flowMultiplier = 1.1 + (Math.random() * 0.2);
+        }
+        // Evening peak (6-9 PM) - dinner, bathing, highest usage
         else if (hour >= 18 && hour < 21) {
-          flowMultiplier = 1.4 + (Math.random() * 0.3);
+          flowMultiplier = 1.5 + (Math.random() * 0.3);
         }
-        // Night (10 PM - 5 AM) - low consumption
-        else if (hour >= 22 || hour < 6) {
-          flowMultiplier = 0.4 + (Math.random() * 0.2);
-        }
-        // Midday (9 AM - 6 PM)
+        // Late evening (9-10 PM) - winding down
         else {
-          flowMultiplier = 0.8 + (Math.random() * 0.3);
+          flowMultiplier = 0.6 + (Math.random() * 0.2);
         }
         
         // Weekend adjustment (slightly lower)
