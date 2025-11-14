@@ -119,6 +119,13 @@ export interface PumpHistory {
   duration: number;
 }
 
+export interface PopulationHistory {
+  id: string;
+  zoneId: string;
+  population: number;
+  timestamp: Date;
+}
+
 export const insertZoneSchema = z.object({
   name: z.string().min(1),
   status: z.enum(["optimal", "low-pressure", "high-demand"]),
@@ -126,7 +133,7 @@ export const insertZoneSchema = z.object({
   pressure: z.number().positive(),
   lat: z.number(),
   lng: z.number(),
-  population: z.number().positive().optional(),
+  population: z.number().positive(),
 });
 
 export const insertWaterSourceSchema = z.object({

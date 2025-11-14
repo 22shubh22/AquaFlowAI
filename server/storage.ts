@@ -53,6 +53,7 @@ const zones = pgTable("zones", {
   lastUpdated: timestamp("last_updated").defaultNow(),
   lat: numeric("lat").notNull(),
   lng: numeric("lng").notNull(),
+  population: integer("population").notNull().default(50000),
 });
 
 const waterSources = pgTable("water_sources", {
@@ -131,6 +132,13 @@ const pumpHistory = pgTable("pump_history", {
   flowRate: numeric("flow_rate").notNull(),
   timestamp: timestamp("timestamp").defaultNow(),
   duration: integer("duration").notNull(),
+});
+
+const populationHistory = pgTable("population_history", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  zoneId: varchar("zone_id").notNull(),
+  population: integer("population").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
 });
 
 class DbStorage {
@@ -237,7 +245,7 @@ class DbStorage {
       lastUpdated: row.lastUpdated!,
       lat: parseFloat(row.lat),
       lng: parseFloat(row.lng),
-      population: row.population || 50000, // Default population
+      population: row.population || 50000,
     }));
   }
 
@@ -254,7 +262,7 @@ class DbStorage {
       lastUpdated: row.lastUpdated!,
       lat: parseFloat(row.lat),
       lng: parseFloat(row.lng),
-      population: row.population || 50000, // Default population
+      population: row.population || 50000,
     };
   }
 
@@ -268,8 +276,16 @@ class DbStorage {
       pressure: zone.pressure.toString(),
       lat: zone.lat.toString(),
       lng: zone.lng.toString(),
+      population: zone.population,
     }).returning();
     const row = result[0];
+    
+    // Record initial population in history
+    await db.insert(populationHistory).values({
+      zoneId: id,
+      population: zone.population,
+    });
+    
     return {
       id: row.id,
       name: row.name,
@@ -279,6 +295,7 @@ class DbStorage {
       lastUpdated: row.lastUpdated!,
       lat: parseFloat(row.lat),
       lng: parseFloat(row.lng),
+      population: row.population || 50000,
     };
   }
 
@@ -290,6 +307,14 @@ class DbStorage {
     if (updates.pressure !== undefined) updateData.pressure = updates.pressure.toString();
     if (updates.lat !== undefined) updateData.lat = updates.lat.toString();
     if (updates.lng !== undefined) updateData.lng = updates.lng.toString();
+    if (updates.population !== undefined) {
+      updateData.population = updates.population;
+      // Record population change in history
+      await db.insert(populationHistory).values({
+        zoneId: id,
+        population: updates.population,
+      });
+    }
     updateData.lastUpdated = new Date();
 
     const result = await db.update(zones).set(updateData).where(eq(zones.id, id)).returning();
@@ -303,6 +328,7 @@ class DbStorage {
       lastUpdated: row.lastUpdated!,
       lat: parseFloat(row.lat),
       lng: parseFloat(row.lng),
+      population: row.population || 50000,
     };
   }
 
@@ -729,6 +755,20 @@ class DbStorage {
       flowRate: parseFloat(row.flowRate),
       timestamp: row.timestamp!,
       duration: row.duration,
+    }));
+  }
+
+  async getPopulationHistory(zoneId: string, hours: number): Promise<PopulationHistory[]> {
+    const cutoffTime = new Date(Date.now() - hours * 3600000);
+    const result = await db.select().from(populationHistory)
+      .where(and(eq(populationHistory.zoneId, zoneId), gte(populationHistory.timestamp, cutoffTime)))
+      .orderBy(desc(populationHistory.timestamp));
+
+    return result.map(row => ({
+      id: row.id!,
+      zoneId: row.zoneId,
+      population: row.population,
+      timestamp: row.timestamp!,
     }));
   }
 }

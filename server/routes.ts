@@ -283,6 +283,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(history);
   });
 
+  app.get("/api/historical/population/:zoneId", async (req, res) => {
+    const hours = parseInt(req.query.hours as string) || 720; // 30 days default
+    const history = await storage.getPopulationHistory(req.params.zoneId, hours);
+    res.json(history);
+  });
+
   // Analytics API for AI insights
   app.get("/api/analytics/demand-prediction", async (req, res) => {
     const zones = await storage.getZones();

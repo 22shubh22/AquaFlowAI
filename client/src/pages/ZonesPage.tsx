@@ -71,7 +71,8 @@ export default function ZonesPage() {
     flowRate: 0,
     pressure: 0,
     lat: 21.2514,
-    lng: 81.6296
+    lng: 81.6296,
+    population: 50000
   });
 
   const { data: zones, isLoading } = useQuery({
@@ -150,7 +151,8 @@ export default function ZonesPage() {
       flowRate: 0,
       pressure: 0,
       lat: 21.2514,
-      lng: 81.6296
+      lng: 81.6296,
+      population: 50000
     });
   };
 
@@ -162,7 +164,8 @@ export default function ZonesPage() {
       flowRate: zone.flowRate,
       pressure: zone.pressure,
       lat: zone.lat,
-      lng: zone.lng
+      lng: zone.lng,
+      population: zone.population || 50000
     });
     setIsEditDialogOpen(true);
   };
@@ -262,6 +265,17 @@ export default function ZonesPage() {
               required
             />
           </div>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor={isEdit ? "edit-population" : "population"}>Population</Label>
+          <Input
+            id={isEdit ? "edit-population" : "population"}
+            type="number"
+            value={formData.population}
+            onChange={(e) => setFormData({ ...formData, population: parseInt(e.target.value) })}
+            required
+          />
         </div>
 
         <div className="grid gap-2">
@@ -396,6 +410,7 @@ export default function ZonesPage() {
               <TableRow>
                 <TableHead>Zone ID</TableHead>
                 <TableHead>Zone Name</TableHead>
+                <TableHead>Population</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Flow Rate</TableHead>
                 <TableHead>Pressure</TableHead>
@@ -407,6 +422,7 @@ export default function ZonesPage() {
                 <TableRow key={zone.id}>
                   <TableCell className="font-medium">{zone.id}</TableCell>
                   <TableCell>{zone.name}</TableCell>
+                  <TableCell>{(zone.population || 50000).toLocaleString()}</TableCell>
                   <TableCell>{getStatusBadge(zone.status)}</TableCell>
                   <TableCell>{zone.flowRate} L/h</TableCell>
                   <TableCell>{zone.pressure} PSI</TableCell>

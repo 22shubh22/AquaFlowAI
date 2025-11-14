@@ -5,6 +5,7 @@ import { FlowChart } from "@/components/FlowChart";
 import { AIInsights } from "@/components/AIInsights";
 import { AIEquityDashboard } from "@/components/AIEquityDashboard";
 import { ZoneHistoricalChart } from "@/components/ZoneHistoricalChart";
+import { PopulationHistoryChart } from "@/components/PopulationHistoryChart";
 import { Droplets, Gauge, Activity, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -491,6 +492,15 @@ export default function Dashboard() {
                   </div>
 
                   <ZoneHistoricalChart zoneId={zone.id} zoneName={zone.name} />
+                </CardContent>
+              </Card>
+              <Card key={`${zone.id}-population`}>
+                <CardHeader>
+                  <CardTitle>Population Trend - {zone.name}</CardTitle>
+                  <CardDescription>30-day population history</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PopulationHistoryChart zoneId={zone.id} zoneName={zone.name} />
                 </CardContent>
               </Card>
             ))}
