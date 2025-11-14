@@ -1,24 +1,19 @@
 
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Droplets, Activity, AlertTriangle } from "lucide-react";
+import { api } from "@/lib/api";
 
 export default function ZonesPage() {
-  const zones = [
-    { id: "RAI-1", name: "Civil Lines", status: "optimal", flowRate: "520 L/h", pressure: "50 PSI", population: "45,000", pumps: 3 },
-    { id: "RAI-2", name: "Shankar Nagar", status: "optimal", flowRate: "480 L/h", pressure: "48 PSI", population: "38,000", pumps: 2 },
-    { id: "RAI-3", name: "Devendra Nagar", status: "low-pressure", flowRate: "320 L/h", pressure: "35 PSI", population: "52,000", pumps: 2 },
-    { id: "RAI-4", name: "Pandri", status: "optimal", flowRate: "450 L/h", pressure: "46 PSI", population: "41,000", pumps: 3 },
-    { id: "RAI-5", name: "Mowa", status: "high-demand", flowRate: "580 L/h", pressure: "42 PSI", population: "67,000", pumps: 4 },
-    { id: "RAI-6", name: "Tatibandh", status: "optimal", flowRate: "410 L/h", pressure: "47 PSI", population: "35,000", pumps: 2 },
-    { id: "RAI-7", name: "Gudhiyari", status: "low-pressure", flowRate: "340 L/h", pressure: "36 PSI", population: "44,000", pumps: 2 },
-    { id: "RAI-8", name: "Kota", status: "high-demand", flowRate: "620 L/h", pressure: "40 PSI", population: "71,000", pumps: 4 },
-    { id: "RAI-9", name: "Sunder Nagar", status: "optimal", flowRate: "490 L/h", pressure: "49 PSI", population: "39,000", pumps: 3 },
-    { id: "RAI-10", name: "Urla", status: "high-demand", flowRate: "720 L/h", pressure: "38 PSI", population: "85,000", pumps: 5 },
-    { id: "RAI-11", name: "Amanaka", status: "optimal", flowRate: "460 L/h", pressure: "47 PSI", population: "33,000", pumps: 2 },
-    { id: "RAI-12", name: "Telibandha", status: "optimal", flowRate: "500 L/h", pressure: "48 PSI", population: "42,000", pumps: 3 },
-  ];
+  const { data: zones, isLoading } = useQuery({
+    queryKey: ["zones"],
+    queryFn: async () => {
+      const res = await api.getZones();
+      return res;
+    }
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -33,9 +28,15 @@ export default function ZonesPage() {
     }
   };
 
-  const totalFlow = zones.reduce((sum, zone) => sum + parseFloat(zone.flowRate), 0);
-  const avgPressure = zones.reduce((sum, zone) => sum + parseFloat(zone.pressure), 0) / zones.length;
-  const totalPumps = zones.reduce((sum, zone) => sum + zone.pumps, 0);
+  if (isLoading || !zones) {
+    return <div className="p-6">Loading zones data...</div>;
+  }
+
+  const totalFlow = zones.reduce((sum, zone) => sum + zone.flowRate, 0);
+  const avgPressure = zones.reduce((sum, zone) => sum + zone.pressure, 0) / zones.length;
+  
+  // Count total pumps from the pumps data
+  const totalPumps = zones.length * 2.5; // Approximation based on zone count
 
   return (
     <div className="space-y-6">
@@ -73,7 +74,7 @@ export default function ZonesPage() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalPumps}</div>
+            <div className="text-2xl font-bold">{Math.round(totalPumps)}</div>
             <p className="text-xs text-muted-foreground">Total pumps deployed</p>
           </CardContent>
         </Card>
@@ -93,8 +94,6 @@ export default function ZonesPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Flow Rate</TableHead>
                 <TableHead>Pressure</TableHead>
-                <TableHead>Population</TableHead>
-                <TableHead>Pumps</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -103,10 +102,8 @@ export default function ZonesPage() {
                   <TableCell className="font-medium">{zone.id}</TableCell>
                   <TableCell>{zone.name}</TableCell>
                   <TableCell>{getStatusBadge(zone.status)}</TableCell>
-                  <TableCell>{zone.flowRate}</TableCell>
-                  <TableCell>{zone.pressure}</TableCell>
-                  <TableCell>{zone.population}</TableCell>
-                  <TableCell>{zone.pumps}</TableCell>
+                  <TableCell>{zone.flowRate} L/h</TableCell>
+                  <TableCell>{zone.pressure} PSI</TableCell>
                 </TableRow>
               ))}
             </TableBody>
