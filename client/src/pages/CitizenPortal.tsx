@@ -34,6 +34,7 @@ export default function CitizenPortal() {
 
   const handleSubmit = async (reportData: any) => {
     try {
+      console.log("Current user object:", user); // Debug log
       if (!user?.id) {
         toast({
           title: "Error",

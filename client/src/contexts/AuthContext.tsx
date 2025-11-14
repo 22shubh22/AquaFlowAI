@@ -46,11 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { api } = await import("@/lib/api");
     try {
       const response = await api.login(username, password, expectedRole);
+      console.log("Login response:", response); // Debug log
       const userData = {
         id: response.id,
         username: response.username,
         role: response.role
       };
+      console.log("Setting user data:", userData); // Debug log
       setRole(response.role);
       setUser(userData);
       localStorage.setItem("userRole", response.role);
