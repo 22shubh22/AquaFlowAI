@@ -1,4 +1,3 @@
-
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -7,13 +6,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication API
   app.post("/api/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
       return res.status(400).json({ error: "Username and password are required" });
     }
 
     const user = await storage.getUserByUsername(username);
-    
+
     if (!user || user.password !== password) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -176,23 +175,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/demand-prediction", async (req, res) => {
     const zones = await storage.getZones();
     const historicalData = await storage.getAggregatedZoneData(168); // 7 days
-    
+
     // Enhanced prediction using historical patterns
     const predictions = await Promise.all(zones.map(async zone => {
       const history = historicalData.get(zone.id) || [];
-      
+
       // Calculate average demand by hour of day
       const currentHour = new Date().getHours();
       const nextHour = (currentHour + 2) % 24;
-      
+
       const historicalAtHour = history.filter(h => h.hour >= currentHour && h.hour <= nextHour);
       const avgFlow = historicalAtHour.length > 0
         ? historicalAtHour.reduce((sum, h) => sum + h.flowRate, 0) / historicalAtHour.length
         : zone.flowRate;
-      
+
       const predictedDemand = avgFlow * (1 + Math.random() * 0.1 - 0.05);
       const confidence = Math.min(0.95, 0.6 + (historicalAtHour.length / 100));
-      
+
       return {
         zoneId: zone.id,
         zoneName: zone.name,
@@ -203,16 +202,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trend: predictedDemand > zone.flowRate ? "increasing" : "decreasing"
       };
     }));
-    
+
     res.json(predictions);
   });
 
   app.get("/api/analytics/optimization-suggestions", async (req, res) => {
     const pumps = await storage.getPumps();
     const zones = await storage.getZones();
-    
+
     const suggestions = [];
-    
+
     // Find zones with low pressure and suggest pump adjustments
     for (const zone of zones) {
       if (zone.pressure < 40) {
@@ -226,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     }
-    
+
     res.json(suggestions);
   });
 

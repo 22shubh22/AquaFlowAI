@@ -9,13 +9,14 @@ import { api } from "@/lib/api";
 import { useState } from "react";
 
 export default function AnalyticsPage() {
-  const [selectedZone, setSelectedZone] = useState<string>("RAI-1");
   const [timeRange, setTimeRange] = useState<number>(24);
 
   const { data: zones } = useQuery({
     queryKey: ["zones"],
     queryFn: () => api.get("/api/zones").then(res => res.data)
   });
+
+  const [selectedZone, setSelectedZone] = useState<string>(zones?.[0]?.id || "RAI-1");
 
   const { data: zoneHistory } = useQuery({
     queryKey: ["zone-history", selectedZone, timeRange],
@@ -143,11 +144,15 @@ export default function AnalyticsPage() {
                     <SelectValue placeholder="Select zone" />
                   </SelectTrigger>
                   <SelectContent>
-                    {zones?.map((zone: any) => (
-                      <SelectItem key={zone.id} value={zone.id}>
-                        {zone.name}
-                      </SelectItem>
-                    ))}
+                    {zones && zones.length > 0 ? (
+                      zones.map((zone: any) => (
+                        <SelectItem key={zone.id} value={zone.id}>
+                          {zone.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">No zones available</div>
+                    )}
                   </SelectContent>
                 </Select>
 
