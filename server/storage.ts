@@ -1,4 +1,3 @@
-
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { eq, desc, and, gte } from 'drizzle-orm';
@@ -181,7 +180,7 @@ class DbStorage {
   // Citizen User methods
   async getCitizenUsers(): Promise<CitizenUser[]> {
     const result = await db.select().from(citizenUsers);
-    
+
     // Count reports for each user
     const usersWithReportCount = await Promise.all(
       result.map(async (row) => {
@@ -197,7 +196,7 @@ class DbStorage {
         };
       })
     );
-    
+
     return usersWithReportCount;
   }
 
@@ -663,7 +662,7 @@ class DbStorage {
     const result = await db.select().from(zoneHistory)
       .where(and(eq(zoneHistory.zoneId, zoneId), gte(zoneHistory.timestamp, cutoffTime)))
       .orderBy(desc(zoneHistory.timestamp));
-    
+
     return result.map(row => ({
       id: row.id!,
       zoneId: row.zoneId,
@@ -680,7 +679,7 @@ class DbStorage {
     const result = await db.select().from(zoneHistory)
       .where(gte(zoneHistory.timestamp, cutoffTime))
       .orderBy(desc(zoneHistory.timestamp));
-    
+
     const dataMap = new Map<string, ZoneHistoricalData[]>();
     result.forEach(row => {
       const data: ZoneHistoricalData = {
@@ -697,7 +696,7 @@ class DbStorage {
       }
       dataMap.get(row.zoneId)!.push(data);
     });
-    
+
     return dataMap;
   }
 
@@ -706,7 +705,7 @@ class DbStorage {
     const result = await db.select().from(reservoirHistory)
       .where(and(eq(reservoirHistory.sourceId, sourceId), gte(reservoirHistory.timestamp, cutoffTime)))
       .orderBy(desc(reservoirHistory.timestamp));
-    
+
     return result.map(row => ({
       id: row.id!,
       sourceId: row.sourceId,
@@ -720,7 +719,7 @@ class DbStorage {
     const result = await db.select().from(pumpHistory)
       .where(and(eq(pumpHistory.pumpId, pumpId), gte(pumpHistory.timestamp, cutoffTime)))
       .orderBy(desc(pumpHistory.timestamp));
-    
+
     return result.map(row => ({
       id: row.id!,
       pumpId: row.pumpId,
