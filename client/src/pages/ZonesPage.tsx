@@ -8,11 +8,56 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Droplets, Activity, AlertTriangle, Plus, Pencil, Trash2 } from "lucide-react";
+import { Droplets, Activity, AlertTriangle, Plus, Pencil, Trash2, MapPin } from "lucide-react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { api } from "@/lib/api";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { Zone } from "../../server/storage";
+
+// Fix for default marker icons in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+interface DraggableMarkerProps {
+  position: [number, number];
+  onPositionChange: (lat: number, lng: number) => void;
+}
+
+function DraggableMarker({ position, onPositionChange }: DraggableMarkerProps) {
+  const markerRef = useRef<L.Marker>(null);
+
+  const eventHandlers = {
+    dragend() {
+      const marker = markerRef.current;
+      if (marker != null) {
+        const pos = marker.getLatLng();
+        onPositionChange(pos.lat, pos.lng);
+      }
+    },
+  };
+
+  useMapEvents({
+    click(e) {
+      onPositionChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return (
+    <Marker
+      draggable={true}
+      eventHandlers={eventHandlers}
+      position={position}
+      ref={markerRef}
+    />
+  );
+}
 
 export default function ZonesPage() {
   const queryClient = useQueryClient();
@@ -135,6 +180,10 @@ export default function ZonesPage() {
     }
   };
 
+  const handleMarkerPositionChange = (lat: number, lng: number) => {
+    setFormData({ ...formData, lat, lng });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "optimal":
@@ -156,6 +205,123 @@ export default function ZonesPage() {
   const avgPressure = zones.reduce((sum, zone) => sum + zone.pressure, 0) / zones.length;
   const totalPumps = zones.length * 2.5;
 
+  const renderZoneForm = (isEdit: boolean) => (
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <DialogTitle>{isEdit ? "Edit Zone" : "Add New Zone"}</DialogTitle>
+        <DialogDescription>
+          {isEdit ? "Update zone information" : "Create a new water distribution zone"}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="grid gap-2">
+          <Label htmlFor={isEdit ? "edit-name" : "name"}>Zone Name</Label>
+          <Input
+            id={isEdit ? "edit-name" : "name"}
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={isEdit ? "edit-status" : "status"}>Status</Label>
+          <Select
+            value={formData.status}
+            onValueChange={(value) => setFormData({ ...formData, status: value as Zone['status'] })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="optimal">Optimal</SelectItem>
+              <SelectItem value="low-pressure">Low Pressure</SelectItem>
+              <SelectItem value="high-demand">High Demand</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor={isEdit ? "edit-flowRate" : "flowRate"}>Flow Rate (L/h)</Label>
+            <Input
+              id={isEdit ? "edit-flowRate" : "flowRate"}
+              type="number"
+              value={formData.flowRate}
+              onChange={(e) => setFormData({ ...formData, flowRate: parseFloat(e.target.value) })}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={isEdit ? "edit-pressure" : "pressure"}>Pressure (PSI)</Label>
+            <Input
+              id={isEdit ? "edit-pressure" : "pressure"}
+              type="number"
+              value={formData.pressure}
+              onChange={(e) => setFormData({ ...formData, pressure: parseFloat(e.target.value) })}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          <Label className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Zone Location (Drag marker or click on map)
+          </Label>
+          <div className="h-[300px] rounded-lg overflow-hidden border-2 border-border">
+            <MapContainer
+              center={[formData.lat, formData.lng]}
+              zoom={13}
+              style={{ height: '100%', width: '100%' }}
+              scrollWheelZoom={true}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <DraggableMarker
+                position={[formData.lat, formData.lng]}
+                onPositionChange={handleMarkerPositionChange}
+              />
+            </MapContainer>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor={isEdit ? "edit-lat" : "lat"}>Latitude</Label>
+            <Input
+              id={isEdit ? "edit-lat" : "lat"}
+              type="number"
+              step="0.0001"
+              value={formData.lat}
+              onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={isEdit ? "edit-lng" : "lng"}>Longitude</Label>
+            <Input
+              id={isEdit ? "edit-lng" : "lng"}
+              type="number"
+              step="0.0001"
+              value={formData.lng}
+              onChange={(e) => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
+              required
+            />
+          </div>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button type="submit" disabled={isEdit ? updateMutation.isPending : createMutation.isPending}>
+          {isEdit 
+            ? (updateMutation.isPending ? "Updating..." : "Update Zone")
+            : (createMutation.isPending ? "Creating..." : "Create Zone")
+          }
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -170,185 +336,15 @@ export default function ZonesPage() {
               Add Zone
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>Add New Zone</DialogTitle>
-                <DialogDescription>
-                  Create a new water distribution zone
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Zone Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value as Zone['status'] })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="optimal">Optimal</SelectItem>
-                      <SelectItem value="low-pressure">Low Pressure</SelectItem>
-                      <SelectItem value="high-demand">High Demand</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="flowRate">Flow Rate (L/h)</Label>
-                    <Input
-                      id="flowRate"
-                      type="number"
-                      value={formData.flowRate}
-                      onChange={(e) => setFormData({ ...formData, flowRate: parseFloat(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="pressure">Pressure (PSI)</Label>
-                    <Input
-                      id="pressure"
-                      type="number"
-                      value={formData.pressure}
-                      onChange={(e) => setFormData({ ...formData, pressure: parseFloat(e.target.value) })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="lat">Latitude</Label>
-                    <Input
-                      id="lat"
-                      type="number"
-                      step="0.0001"
-                      value={formData.lat}
-                      onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="lng">Longitude</Label>
-                    <Input
-                      id="lng"
-                      type="number"
-                      step="0.0001"
-                      value={formData.lng}
-                      onChange={(e) => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Zone"}
-                </Button>
-              </DialogFooter>
-            </form>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            {renderZoneForm(false)}
           </DialogContent>
         </Dialog>
       </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle>Edit Zone</DialogTitle>
-              <DialogDescription>
-                Update zone information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Zone Name</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value as Zone['status'] })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="optimal">Optimal</SelectItem>
-                    <SelectItem value="low-pressure">Low Pressure</SelectItem>
-                    <SelectItem value="high-demand">High Demand</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-flowRate">Flow Rate (L/h)</Label>
-                  <Input
-                    id="edit-flowRate"
-                    type="number"
-                    value={formData.flowRate}
-                    onChange={(e) => setFormData({ ...formData, flowRate: parseFloat(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-pressure">Pressure (PSI)</Label>
-                  <Input
-                    id="edit-pressure"
-                    type="number"
-                    value={formData.pressure}
-                    onChange={(e) => setFormData({ ...formData, pressure: parseFloat(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-lat">Latitude</Label>
-                  <Input
-                    id="edit-lat"
-                    type="number"
-                    step="0.0001"
-                    value={formData.lat}
-                    onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-lng">Longitude</Label>
-                  <Input
-                    id="edit-lng"
-                    type="number"
-                    step="0.0001"
-                    value={formData.lng}
-                    onChange={(e) => setFormData({ ...formData, lng: parseFloat(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Updating..." : "Update Zone"}
-              </Button>
-            </DialogFooter>
-          </form>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {renderZoneForm(true)}
         </DialogContent>
       </Dialog>
 
