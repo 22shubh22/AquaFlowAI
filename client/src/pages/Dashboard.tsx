@@ -454,7 +454,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle>{zone.name}</CardTitle>
-                      <CardDescription>Population: {zone.population.toLocaleString()}</CardDescription>
+                      <CardDescription>Population: {(zone.population || 50000).toLocaleString()}</CardDescription>
                     </div>
                     <Badge variant={
                       zone.status === 'optimal' ? 'default' :
@@ -485,7 +485,7 @@ export default function Dashboard() {
                       <Activity className="h-8 w-8 text-chart-3" />
                       <div>
                         <p className="text-xs text-muted-foreground">Per Capita</p>
-                        <p className="text-xl font-bold">{Math.round(zone.flowRate / (zone.population / 1000))} L/h/K</p>
+                        <p className="text-xl font-bold">{Math.round(zone.flowRate / (zone.population || 50000) * 1000)} L/h/K</p>
                       </div>
                     </div>
                   </div>

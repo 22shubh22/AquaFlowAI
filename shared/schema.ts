@@ -126,6 +126,7 @@ export const insertZoneSchema = z.object({
   pressure: z.number().positive(),
   lat: z.number(),
   lng: z.number(),
+  population: z.number().positive().optional(),
 });
 
 export const insertWaterSourceSchema = z.object({

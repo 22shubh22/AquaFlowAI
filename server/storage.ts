@@ -237,6 +237,7 @@ class DbStorage {
       lastUpdated: row.lastUpdated!,
       lat: parseFloat(row.lat),
       lng: parseFloat(row.lng),
+      population: row.population || 50000, // Default population
     }));
   }
 
@@ -253,6 +254,7 @@ class DbStorage {
       lastUpdated: row.lastUpdated!,
       lat: parseFloat(row.lat),
       lng: parseFloat(row.lng),
+      population: row.population || 50000, // Default population
     };
   }
 
