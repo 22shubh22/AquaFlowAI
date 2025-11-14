@@ -450,59 +450,61 @@ export default function Dashboard() {
         <TabsContent value="zone-wise" className="space-y-4">
           <div className="grid grid-cols-1 gap-6">
             {zones?.map((zone: any) => (
-              <Card key={zone.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>{zone.name}</CardTitle>
-                      <CardDescription>Population: {(zone.population || 50000).toLocaleString()}</CardDescription>
-                    </div>
-                    <Badge variant={
-                      zone.status === 'optimal' ? 'default' :
-                      zone.status === 'low-pressure' ? 'destructive' :
-                      zone.status === 'high-demand' ? 'secondary' : 'outline'
-                    }>
-                      {zone.status.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="flex items-center gap-2 p-3 border rounded-lg">
-                      <Droplets className="h-8 w-8 text-chart-1" />
+              <React.Fragment key={zone.id}>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-muted-foreground">Consumption Rate</p>
-                        <p className="text-xl font-bold">{zone.flowRate} L/h</p>
+                        <CardTitle>{zone.name}</CardTitle>
+                        <CardDescription>Population: {(zone.population || 50000).toLocaleString()}</CardDescription>
+                      </div>
+                      <Badge variant={
+                        zone.status === 'optimal' ? 'default' :
+                        zone.status === 'low-pressure' ? 'destructive' :
+                        zone.status === 'high-demand' ? 'secondary' : 'outline'
+                      }>
+                        {zone.status.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="flex items-center gap-2 p-3 border rounded-lg">
+                        <Droplets className="h-8 w-8 text-chart-1" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Consumption Rate</p>
+                          <p className="text-xl font-bold">{zone.flowRate} L/h</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 border rounded-lg">
+                        <Gauge className="h-8 w-8 text-chart-2" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Pressure</p>
+                          <p className="text-xl font-bold">{zone.pressure} PSI</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 border rounded-lg">
+                        <Activity className="h-8 w-8 text-chart-3" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Per Capita</p>
+                          <p className="text-xl font-bold">{Math.round(zone.flowRate / (zone.population || 50000) * 1000)} L/h/K</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 p-3 border rounded-lg">
-                      <Gauge className="h-8 w-8 text-chart-2" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Pressure</p>
-                        <p className="text-xl font-bold">{zone.pressure} PSI</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 border rounded-lg">
-                      <Activity className="h-8 w-8 text-chart-3" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Per Capita</p>
-                        <p className="text-xl font-bold">{Math.round(zone.flowRate / (zone.population || 50000) * 1000)} L/h/K</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  <ZoneHistoricalChart zoneId={zone.id} zoneName={zone.name} />
-                </CardContent>
-              </Card>
-              <Card key={`${zone.id}-population`}>
-                <CardHeader>
-                  <CardTitle>Population Trend - {zone.name}</CardTitle>
-                  <CardDescription>30-day population history</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PopulationHistoryChart zoneId={zone.id} zoneName={zone.name} />
-                </CardContent>
-              </Card>
+                    <ZoneHistoricalChart zoneId={zone.id} zoneName={zone.name} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Population Trend - {zone.name}</CardTitle>
+                    <CardDescription>30-day population history</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PopulationHistoryChart zoneId={zone.id} zoneName={zone.name} />
+                  </CardContent>
+                </Card>
+              </React.Fragment>
             ))}
           </div>
         </TabsContent>
