@@ -129,9 +129,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         consumption: h.flowRate * h.hour
       }));
 
+      // Check if zone was recently manually updated (within last 5 minutes)
+      const timeSinceUpdate = currentTime.getTime() - zone.lastUpdated.getTime();
+      const useManualStatus = timeSinceUpdate < 5 * 60 * 1000; // 5 minutes
+
       return {
         ...zone,
-        status: aiEngine.calculateZoneStatus(zone, sensorData, currentTime),
+        status: useManualStatus ? zone.status : aiEngine.calculateZoneStatus(zone, sensorData, currentTime),
         flowRate: aiEngine.predictFlowRate(zone, sensorData, currentTime)
       };
     });

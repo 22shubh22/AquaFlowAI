@@ -106,7 +106,9 @@ export default function ZonesPage() {
     mutationFn: ({ id, data }: { id: string; data: Partial<Zone> }) => 
       api.updateZone(id, data),
     onSuccess: () => {
+      // Invalidate all zone-related queries to force refetch
       queryClient.invalidateQueries({ queryKey: ["zones"] });
+      queryClient.refetchQueries({ queryKey: ["zones"] });
       setIsEditDialogOpen(false);
       setEditingZone(null);
       toast({
