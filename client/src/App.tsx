@@ -12,15 +12,16 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
-import CitizenPortal from "@/pages/CitizenPortal";
-import PumpSchedulePage from "@/pages/PumpSchedulePage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
 import ZonesPage from "@/pages/ZonesPage";
 import WaterSourcesPage from "@/pages/WaterSourcesPage";
+import PumpSchedulePage from "@/pages/PumpSchedulePage";
 import SettingsPage from "@/pages/SettingsPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
+import CitizenPortal from "@/pages/CitizenPortal";
 import BlockchainVerificationPage from "@/pages/BlockchainVerificationPage";
 import CitizenUsersPage from "@/pages/CitizenUsersPage";
 import NotFound from "@/pages/not-found";
+import { PipelineMonitor } from "@/components/PipelineMonitor";
 
 function Router() {
   const { role, isAuthenticated } = useAuth();
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/blockchain" component={BlockchainVerificationPage} />
       <Route path="/citizen-users" component={CitizenUsersPage} />
+      <Route path="/pipeline-monitor" component={PipelineMonitor} />
       <Route path="*" component={NotFound} />
     </Switch>
   );
