@@ -2,7 +2,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { ReportBlockchain } from './blockchain';
-import { pgTable, varchar, text, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, integer, jsonb, numeric } from "drizzle-orm/pg-core";
 import { sql as sqlOperator } from "drizzle-orm";
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -12,7 +12,8 @@ const citizenReports = pgTable("citizen_reports", {
   id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
   type: text("type").notNull(),
   location: text("location").notNull(),
-  geoLocation: jsonb("geo_location"),
+  geoLat: numeric("geo_lat"),
+  geoLng: numeric("geo_lng"),
   description: text("description").notNull(),
   contact: text("contact").notNull(),
   status: text("status").notNull(),
@@ -22,6 +23,7 @@ const citizenReports = pgTable("citizen_reports", {
   blockNumber: integer("block_number"),
   signature: text("signature"),
   statusHistory: jsonb("status_history"),
+  images: jsonb("images"),
 });
 
 async function diagnoseAndFix() {
