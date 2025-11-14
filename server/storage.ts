@@ -139,6 +139,32 @@ class DbStorage {
 
   constructor() {
     this.blockchain = ReportBlockchain;
+    this.initializeDefaultAdmin();
+  }
+
+  private async initializeDefaultAdmin() {
+    try {
+      // Check if admin user exists
+      const adminExists = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, 'admin'))
+        .limit(1);
+
+      if (adminExists.length === 0) {
+        // Create default admin user
+        await db.insert(users).values({
+          id: crypto.randomUUID(),
+          username: 'admin',
+          password: 'admin123',
+          role: 'admin',
+          createdAt: new Date(),
+        });
+        console.log('Default admin user created (username: admin, password: admin123)');
+      }
+    } catch (error) {
+      console.error('Error initializing default admin:', error);
+    }
   }
 
   // User methods
