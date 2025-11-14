@@ -48,11 +48,30 @@ export function AIEquityDashboard() {
               </Badge>
             </div>
 
-            <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                This score measures how equitably water is distributed across zones based on per-capita flow rates.
-                A score of 100 indicates perfectly equal distribution.
-              </p>
+            <div className="pt-4 border-t space-y-3">
+              <div>
+                <p className="text-sm font-semibold mb-2">How it's calculated:</p>
+                <p className="text-sm text-muted-foreground">
+                  The score is based on the <strong>Coefficient of Variation (CV)</strong> of per-capita flow rates across all zones:
+                </p>
+                <ul className="text-sm text-muted-foreground ml-4 mt-1 space-y-1">
+                  <li>• Calculate per-capita flow rate for each zone (L/h per person)</li>
+                  <li>• Measure the standard deviation across zones</li>
+                  <li>• Divide by the mean to get CV</li>
+                  <li>• Score = 100 - (CV × 100)</li>
+                </ul>
+              </div>
+              
+              <div>
+                <p className="text-sm font-semibold mb-2">Significance:</p>
+                <ul className="text-sm text-muted-foreground ml-4 space-y-1">
+                  <li>• <strong>100:</strong> Perfect equity - all zones receive equal water per person</li>
+                  <li>• <strong>80-99:</strong> Excellent - minor variations in distribution</li>
+                  <li>• <strong>60-79:</strong> Good - acceptable distribution fairness</li>
+                  <li>• <strong>40-59:</strong> Fair - some zones may be underserved</li>
+                  <li>• <strong>&lt;40:</strong> Poor - significant distribution inequality</li>
+                </ul>
+              </div>
             </div>
 
             {equityScore < 70 && (
