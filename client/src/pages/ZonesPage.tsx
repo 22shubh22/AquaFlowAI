@@ -15,7 +15,7 @@ import 'leaflet/dist/leaflet.css';
 import { api } from "@/lib/api";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import type { Zone } from "../../server/storage";
+import type { Zone } from "@shared/schema";
 
 // Fix for default marker icons in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;

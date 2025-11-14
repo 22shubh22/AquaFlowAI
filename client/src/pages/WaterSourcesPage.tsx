@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Droplets, TrendingDown, TrendingUp, AlertCircle, Plus, Pencil, Trash2, MapPin } from "lucide-react";
 import { api } from "@/lib/api";
-import type { WaterSource } from "../../../server/storage";
+import type { WaterSource } from "@shared/schema";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';

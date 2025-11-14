@@ -1,4 +1,4 @@
-import type { Zone, Pump, Alert, CitizenReport, WaterSource } from "../../server/storage";
+import type { Zone, Pump, Alert, CitizenReport, WaterSource } from "@shared/schema";
 
 const API_BASE = "/api";
 

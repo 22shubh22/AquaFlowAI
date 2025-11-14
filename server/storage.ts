@@ -1,110 +1,17 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { 
+  type User, 
+  type InsertUser,
+  type Zone,
+  type WaterSource,
+  type Pump,
+  type Alert,
+  type CitizenUser,
+  type CitizenReport,
+  type ZoneHistoricalData,
+  type ReservoirHistory,
+  type PumpHistory
+} from "@shared/schema";
 import { randomUUID, createHash } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
-
-export interface Zone {
-  id: string;
-  name: string;
-  status: "optimal" | "low-pressure" | "high-demand";
-  flowRate: number;
-  pressure: number;
-  lastUpdated: Date;
-  lat: number;
-  lng: number;
-}
-
-export interface WaterSource {
-  id: string;
-  name: string;
-  type: "river" | "lake" | "borewell" | "reservoir";
-  location: string;
-  geoLocation: { lat: number; lng: number };
-  capacity: number; // in liters
-  currentLevel: number; // percentage
-  quality: "excellent" | "good" | "fair" | "poor";
-  lastTested?: Date;
-  status: "active" | "inactive" | "maintenance";
-}
-
-export interface Pump {
-  id: string;
-  zoneId: string;
-  sourceId: string; // Link to water source
-  status: "active" | "idle" | "maintenance";
-  schedule: string;
-  flowRate: number;
-  lastMaintenance?: Date;
-}
-
-export interface Alert {
-  id: string;
-  type: "pressure-drop" | "excess-pumping" | "leak-detected" | "low-reservoir";
-  zoneId: string;
-  severity: "critical" | "warning" | "info";
-  message: string;
-  timestamp: Date;
-  resolved: boolean;
-}
-
-export interface CitizenUser {
-  id: string;
-  username: string;
-  password: string;
-  email: string;
-  phone: string;
-  createdAt: Date;
-}
-
-export interface CitizenReport {
-  id: string;
-  type: string;
-  location: string;
-  geoLocation?: { lat: number; lng: number };
-  description: string;
-  contact: string;
-  status: "pending" | "investigating" | "resolved";
-  timestamp: Date;
-  images?: string[];
-  // Blockchain-inspired immutability fields
-  reportHash: string; // Hash of this report's content
-  previousHash: string; // Hash of previous report (chain link)
-  blockNumber: number; // Sequential block number
-  signature: string; // Cryptographic signature
-  statusHistory: Array<{
-    status: string;
-    timestamp: Date;
-    updatedBy: string;
-    reason?: string;
-  }>;
-}
-
-export interface ZoneHistoricalData {
-  id: string;
-  zoneId: string;
-  flowRate: number;
-  pressure: number;
-  timestamp: Date;
-  hour: number; // 0-23
-  dayOfWeek: number; // 0-6 (Sunday-Saturday)
-}
-
-export interface ReservoirHistory {
-  id: string;
-  sourceId: string;
-  level: number; // percentage
-  timestamp: Date;
-}
-
-export interface PumpHistory {
-  id: string;
-  pumpId: string;
-  status: "active" | "idle" | "maintenance";
-  flowRate: number;
-  timestamp: Date;
-  duration: number; // minutes the pump was in this state
-}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;

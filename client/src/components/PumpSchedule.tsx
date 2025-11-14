@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Circle, Pencil, Save, X } from "lucide-react";
 import { useState } from "react";
-import type { Zone, WaterSource, Pump } from "../../server/storage";
+import type { Zone, WaterSource, Pump } from "@shared/schema";
 
 interface PumpScheduleProps {
   pumps: Array<{

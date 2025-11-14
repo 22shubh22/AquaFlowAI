@@ -3,7 +3,7 @@ import { PumpSchedule } from "@/components/PumpSchedule";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Pump, Zone, WaterSource } from "../../../server/storage";
+import type { Pump, Zone, WaterSource } from "@shared/schema";
 
 export default function PumpSchedulePage() {
   const queryClient = useQueryClient();
