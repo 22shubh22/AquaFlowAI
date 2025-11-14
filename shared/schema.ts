@@ -1,12 +1,130 @@
+
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, numeric, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+});
+
+// Citizen users table
+export const citizenUsers = pgTable("citizen_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Zones table
+export const zones = pgTable("zones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  status: text("status").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  pressure: numeric("pressure").notNull(),
+  lat: numeric("lat").notNull(),
+  lng: numeric("lng").notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  population: integer("population").notNull().default(50000),
+});
+
+// Water sources table
+export const waterSources = pgTable("water_sources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  location: text("location").notNull(),
+  geoLat: numeric("geo_lat").notNull(),
+  geoLng: numeric("geo_lng").notNull(),
+  capacity: numeric("capacity").notNull(),
+  currentLevel: numeric("current_level").notNull(),
+  quality: text("quality").notNull(),
+  lastTested: timestamp("last_tested"),
+  status: text("status").notNull(),
+});
+
+// Pumps table
+export const pumps = pgTable("pumps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  zoneId: varchar("zone_id").notNull(),
+  sourceId: varchar("source_id").notNull(),
+  status: text("status").notNull(),
+  schedule: text("schedule").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  lastMaintenance: timestamp("last_maintenance"),
+});
+
+// Alerts table
+export const alerts = pgTable("alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(),
+  zoneId: varchar("zone_id").notNull(),
+  severity: text("severity").notNull(),
+  message: text("message").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  resolved: boolean("resolved").default(false),
+});
+
+// Citizen reports table
+export const citizenReports = pgTable("citizen_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(),
+  location: text("location").notNull(),
+  geoLat: numeric("geo_lat"),
+  geoLng: numeric("geo_lng"),
+  description: text("description").notNull(),
+  userId: varchar("user_id").notNull(),
+  status: text("status").notNull().default('pending'),
+  timestamp: timestamp("timestamp").defaultNow(),
+  images: jsonb("images"),
+  reportHash: text("report_hash").notNull(),
+  previousHash: text("previous_hash").notNull(),
+  blockNumber: integer("block_number").notNull(),
+  signature: text("signature").notNull(),
+  statusHistory: jsonb("status_history").notNull(),
+});
+
+// Zone history table
+export const zoneHistory = pgTable("zone_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  zoneId: varchar("zone_id").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  pressure: numeric("pressure").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  hour: integer("hour").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(),
+});
+
+// Reservoir history table
+export const reservoirHistory = pgTable("reservoir_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sourceId: varchar("source_id").notNull(),
+  level: numeric("level").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Pump history table
+export const pumpHistory = pgTable("pump_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pumpId: varchar("pump_id").notNull(),
+  status: text("status").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  duration: integer("duration").notNull(),
+});
+
+// Population history table
+export const populationHistory = pgTable("population_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  zoneId: varchar("zone_id").notNull(),
+  population: integer("population").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -26,6 +144,7 @@ export interface Zone {
   lastUpdated: Date;
   lat: number;
   lng: number;
+  population?: number;
 }
 
 export interface WaterSource {
