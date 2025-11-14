@@ -212,12 +212,23 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      timestamp: new Date(),
+    
+    // Prepare the report data matching the backend structure
+    const reportData = {
+      type: formData.type,
+      location: formData.location,
+      description: formData.description,
+      contact: formData.contact,
+      geoLocation: {
+        lat: formData.lat,
+        lng: formData.lng
+      },
       status: "pending",
-      geoLocation: { lat: formData.lat, lng: formData.lng },
-    });
+      timestamp: new Date().toISOString()
+    };
+    
+    onSubmit(reportData);
+    
     // Reset form
     setFormData({
       type: "Water Leak",

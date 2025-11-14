@@ -32,16 +32,19 @@ export default function CitizenPortal() {
 
   const handleSubmit = async (report: any) => {
     try {
-      await api.createReport(report);
+      console.log("Submitting report:", report);
+      const result = await api.createReport(report);
+      console.log("Report created:", result);
       toast({
         title: "Report Submitted",
         description: "Your water issue has been reported. We'll investigate shortly.",
       });
       loadReports();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Report submission error:", error);
       toast({
         title: "Error",
-        description: "Failed to submit report",
+        description: error.message || "Failed to submit report",
         variant: "destructive",
       });
     }

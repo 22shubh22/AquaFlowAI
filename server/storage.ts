@@ -395,51 +395,56 @@ export class MemStorage implements IStorage {
   }
 
   async createReport(report: Omit<CitizenReport, 'id' | 'timestamp' | 'reportHash' | 'previousHash' | 'blockNumber' | 'signature' | 'statusHistory'>): Promise<CitizenReport> {
-    const id = randomUUID();
-    const timestamp = new Date();
-    
-    // Get all reports to determine block number and previous hash
-    const allReports = Array.from(this.reports.values())
-      .sort((a, b) => a.blockNumber - b.blockNumber);
-    
-    const blockNumber = allReports.length;
-    const previousHash = allReports.length > 0 
-      ? allReports[allReports.length - 1].reportHash 
-      : '0'; // Genesis block
-    
-    // Create preliminary report for hashing
-    const preliminaryReport = {
-      id,
-      type: report.type,
-      location: report.location,
-      geoLocation: report.geoLocation,
-      description: report.description,
-      contact: report.contact,
-      status: 'pending' as const,
-      timestamp,
-      images: report.images,
-      previousHash,
-      blockNumber,
-    };
-    
-    // Generate hash and signature
-    const reportHash = this.generateReportHash(preliminaryReport);
-    const signature = this.generateSignature(reportHash, timestamp);
-    
-    const newReport: CitizenReport = { 
-      ...preliminaryReport,
-      reportHash,
-      signature,
-      statusHistory: [{
-        status: 'pending',
+    try {
+      const id = randomUUID(); // Use randomUUID for IDs
+      const timestamp = new Date();
+
+      // Get all reports to determine block number and previous hash
+      const allReports = Array.from(this.reports.values())
+        .sort((a, b) => a.blockNumber - b.blockNumber);
+
+      const blockNumber = allReports.length;
+      const previousHash = allReports.length > 0 
+        ? allReports[allReports.length - 1].reportHash 
+        : '0'; // Genesis block
+
+      // Create preliminary report for hashing
+      const preliminaryReport = {
+        id,
+        type: report.type || "Other",
+        location: report.location || "Unknown",
+        geoLocation: report.geoLocation || { lat: 21.25, lng: 81.63 }, // Default location if not provided
+        description: report.description || "",
+        contact: report.contact || "",
+        status: 'pending' as const,
         timestamp,
-        updatedBy: 'citizen',
-      }],
-    };
-    
-    this.reports.set(id, newReport);
-    console.log(`📦 Block #${blockNumber} created: ${reportHash.substring(0, 16)}...`);
-    return newReport;
+        images: report.images,
+        previousHash,
+        blockNumber,
+      };
+
+      // Generate hash and signature
+      const reportHash = this.generateReportHash(preliminaryReport);
+      const signature = this.generateSignature(reportHash, timestamp);
+
+      const newReport: CitizenReport = { 
+        ...preliminaryReport,
+        reportHash,
+        signature,
+        statusHistory: [{
+          status: 'pending',
+          timestamp,
+          updatedBy: 'citizen',
+        }],
+      };
+
+      this.reports.set(id, newReport);
+      console.log(`📦 Block #${blockNumber} created: ${reportHash.substring(0, 16)}...`);
+      return newReport;
+    } catch (error) {
+      console.error("Error creating report:", error);
+      throw new Error("Failed to create report");
+    }
   }
 
   private generateReportHash(data: any): string {
@@ -449,23 +454,24 @@ export class MemStorage implements IStorage {
       type: data.type,
       location: data.location,
       description: data.description,
-      timestamp: data.timestamp,
+      timestamp: data.timestamp.toISOString(), // Ensure timestamp is stringified
       status: data.status,
       previousHash: data.previousHash || '0',
+      geoLocation: data.geoLocation // Include geoLocation in hash
     });
     return crypto.createHash('sha256').update(content).digest('hex');
   }
 
   private generateSignature(reportHash: string, timestamp: Date): string {
     const crypto = require('crypto');
-    const data = `${reportHash}:${timestamp.toISOString()}`;
+    const data = `${reportHash}:${timestamp.toISOString()}`; // Ensure timestamp is stringified
     return crypto.createHash('sha256').update(data).digest('hex');
   }
 
   async updateReportStatus(id: string, status: CitizenReport['status'], updatedBy: string = 'admin', reason?: string): Promise<CitizenReport> {
     const report = this.reports.get(id);
     if (!report) throw new Error("Report not found");
-    
+
     // Add to immutable status history (never delete, only append)
     report.statusHistory.push({
       status,
@@ -473,10 +479,10 @@ export class MemStorage implements IStorage {
       updatedBy,
       reason,
     });
-    
+
     report.status = status;
     this.reports.set(id, report);
-    
+
     console.log(`🔗 Report ${id} status updated: ${status} (immutable record preserved)`);
     return report;
   }
@@ -545,7 +551,7 @@ export class MemStorage implements IStorage {
   async getAggregatedZoneData(hours: number = 168): Promise<Map<string, ZoneHistoricalData[]>> {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
     const aggregated = new Map<string, ZoneHistoricalData[]>();
-    
+
     for (const record of this.zoneHistory.values()) {
       if (record.timestamp >= cutoff) {
         const existing = aggregated.get(record.zoneId) || [];
@@ -553,7 +559,7 @@ export class MemStorage implements IStorage {
         aggregated.set(record.zoneId, existing);
       }
     }
-    
+
     return aggregated;
   }
 
@@ -564,7 +570,7 @@ export class MemStorage implements IStorage {
 
     for (let i = 0; i < allReports.length; i++) {
       const report = allReports[i];
-      
+
       // Verify hash integrity
       const calculatedHash = this.generateReportHash(report);
       if (calculatedHash !== report.reportHash) {
@@ -586,9 +592,9 @@ export class MemStorage implements IStorage {
   async getBlockchainStats(): Promise<any> {
     const reports = Array.from(this.reports.values())
       .sort((a, b) => a.blockNumber - b.blockNumber);
-    
+
     const verification = await this.verifyReportChain();
-    
+
     return {
       totalBlocks: reports.length,
       isValid: verification.valid,
@@ -609,7 +615,7 @@ export class MemStorage implements IStorage {
   private startHistoricalDataCollection() {
     // Generate historical data for the past 7 days
     this.generateHistoricalData();
-    
+
     // Record current data every 15 minutes
     setInterval(() => {
       this.recordCurrentState();
@@ -627,17 +633,17 @@ export class MemStorage implements IStorage {
       for (let hour = 0; hour < 24; hour++) {
         for (let minute = 0; minute < 60; minute += 15) {
           const timestamp = new Date(now.getTime() - (day * 24 * 60 * 60 * 1000) - ((23 - hour) * 60 * 60 * 1000) - ((60 - minute) * 60 * 1000));
-          
+
           // Record zone data with patterns (higher demand morning 6-9 and evening 18-21)
           zones.forEach(zone => {
             const baseFlow = zone.flowRate;
             const basePressure = zone.pressure;
             const isPeakHour = (hour >= 6 && hour <= 9) || (hour >= 18 && hour <= 21);
             const variation = Math.random() * 0.2 - 0.1; // ±10% variation
-            
+
             const flowRate = baseFlow * (isPeakHour ? 1.3 : 0.7) * (1 + variation);
             const pressure = basePressure * (isPeakHour ? 0.9 : 1.1) * (1 + variation);
-            
+
             const id = randomUUID();
             this.zoneHistory.set(id, {
               id,
@@ -655,7 +661,7 @@ export class MemStorage implements IStorage {
             const baseLevel = source.currentLevel;
             const isPeakHour = (hour >= 6 && hour <= 9) || (hour >= 18 && hour <= 21);
             const level = baseLevel + (Math.random() * 10 - 5) - (isPeakHour ? 2 : -1);
-            
+
             const id = randomUUID();
             this.reservoirHistory.set(id, {
               id,
