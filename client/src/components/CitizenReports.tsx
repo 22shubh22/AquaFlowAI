@@ -89,14 +89,43 @@ export function CitizenReports({ reports, onStatusChange, loading }: CitizenRepo
         </div>
         
         {blockchainStats && (
-          <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800 space-y-3">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="font-medium">Immutable Ledger Active</span>
+              <Shield className="h-5 w-5 text-blue-600" />
+              <span className="font-bold text-blue-900 dark:text-blue-100">🔐 Blockchain-Secured Ledger</span>
             </div>
-            <p className="text-muted-foreground">
-              All reports are cryptographically secured in block #{blockchainStats.totalBlocks - 1}. 
-              Records cannot be deleted or tampered with.
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-white/50 dark:bg-black/20 rounded p-2">
+                <div className="text-muted-foreground font-medium">Total Blocks</div>
+                <div className="font-mono font-bold text-lg">{blockchainStats.totalBlocks}</div>
+              </div>
+              <div className="bg-white/50 dark:bg-black/20 rounded p-2">
+                <div className="text-muted-foreground font-medium">Chain Status</div>
+                <div className="font-bold text-green-600 flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4" />
+                  {blockchainStats.isValid ? 'VALID' : 'INVALID'}
+                </div>
+              </div>
+            </div>
+            {blockchainStats.genesisBlock && (
+              <div className="space-y-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                <div className="bg-white/50 dark:bg-black/20 rounded p-2">
+                  <div className="text-muted-foreground text-xs font-medium mb-1">Genesis Block Hash</div>
+                  <div className="font-mono text-xs bg-black/5 dark:bg-white/5 p-1 rounded break-all">
+                    {blockchainStats.genesisBlock.hash}
+                  </div>
+                </div>
+                <div className="bg-white/50 dark:bg-black/20 rounded p-2">
+                  <div className="text-muted-foreground text-xs font-medium mb-1">Latest Block Hash</div>
+                  <div className="font-mono text-xs bg-black/5 dark:bg-white/5 p-1 rounded break-all">
+                    {blockchainStats.latestBlock.hash}
+                  </div>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground pt-2 border-t border-blue-200 dark:border-blue-800">
+              <strong>SHA-256 Cryptography:</strong> Each report is hashed and chained to the previous block. 
+              Any tampering breaks the chain and is instantly detectable.
             </p>
           </div>
         )}
@@ -107,8 +136,8 @@ export function CitizenReports({ reports, onStatusChange, loading }: CitizenRepo
               No reports submitted yet
             </div>
           ) : (
-            reports.map((report) => (
-              <Card key={report.id} className="p-4 hover-elevate" data-testid={`report-${report.id}`}>
+            reports.map((report: any) => (
+              <Card key={report.id} className="p-4 hover-elevate border-l-4 border-l-blue-500" data-testid={`report-${report.id}`}>
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -116,11 +145,32 @@ export function CitizenReports({ reports, onStatusChange, loading }: CitizenRepo
                       <Badge variant={statusConfig[report.status].variant}>
                         {statusConfig[report.status].label}
                       </Badge>
+                      <Badge variant="outline" className="gap-1 text-xs">
+                        <Shield className="h-3 w-3" />
+                        Block #{report.blockNumber}
+                      </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground font-medium">
                       {report.type}
                     </span>
                   </div>
+                  
+                  {report.reportHash && (
+                    <div className="bg-muted/30 rounded p-2 text-xs space-y-1">
+                      <div className="font-medium text-muted-foreground">Report Hash (SHA-256)</div>
+                      <div className="font-mono text-[10px] break-all bg-black/5 dark:bg-white/5 p-1 rounded">
+                        {report.reportHash}
+                      </div>
+                      {report.previousHash && report.previousHash !== '0' && (
+                        <>
+                          <div className="font-medium text-muted-foreground pt-1">Previous Hash</div>
+                          <div className="font-mono text-[10px] break-all bg-black/5 dark:bg-white/5 p-1 rounded">
+                            {report.previousHash}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                   
                   <p className="text-sm line-clamp-2">{report.description}</p>
                   

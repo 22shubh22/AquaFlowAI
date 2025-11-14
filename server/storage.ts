@@ -506,12 +506,12 @@ export class MemStorage implements IStorage {
       invalidBlock: verification.invalidBlock,
       genesisBlock: reports.length > 0 ? {
         number: reports[0].blockNumber,
-        hash: reports[0].reportHash.substring(0, 16) + '...',
+        hash: reports[0].reportHash,
         timestamp: reports[0].timestamp,
       } : null,
       latestBlock: reports.length > 0 ? {
         number: reports[reports.length - 1].blockNumber,
-        hash: reports[reports.length - 1].reportHash.substring(0, 16) + '...',
+        hash: reports[reports.length - 1].reportHash,
         timestamp: reports[reports.length - 1].timestamp,
       } : null,
     };

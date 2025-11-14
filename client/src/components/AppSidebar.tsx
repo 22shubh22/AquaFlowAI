@@ -1,4 +1,4 @@
-import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock, Droplets, TrendingUp } from "lucide-react";
+import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock, Droplets, TrendingUp, Shield } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -97,6 +97,14 @@ export function AppSidebar() {
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <a href="/blockchain">
+                      <Shield />
+                      <span>Blockchain Verification</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={location === "/settings"}>
                     <a href="/settings" data-testid="link-settings">

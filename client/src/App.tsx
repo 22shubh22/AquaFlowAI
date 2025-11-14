@@ -16,8 +16,7 @@ import PumpSchedulePage from "@/pages/PumpSchedulePage";
 import ZonesPage from "@/pages/ZonesPage";
 import WaterSourcesPage from "@/pages/WaterSourcesPage";
 import SettingsPage from "@/pages/SettingsPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
-import Login from "@/pages/Login";
+import BlockchainVerificationPage from "@/pages/BlockchainVerificationPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -42,7 +41,8 @@ function Router() {
       <Route path="/schedule" component={PumpSchedulePage} />
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/settings" component={SettingsPage} />
-      <Route component={NotFound} />
+      <Route path="/blockchain" element={<BlockchainVerificationPage />} />
+      <Route path="*" element={<NotFound />} />
     </Switch>
   );
 }
