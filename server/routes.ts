@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { aiEngine } from "./ai-engine";
-import { log } from "./log"; // Assuming log function is available
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication API
@@ -289,10 +288,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { zoneId } = req.params;
       const history = await storage.getPopulationHistory(zoneId);
-      log(`Fetched ${history.length} population history records for zone ${zoneId}`);
       res.json(history);
     } catch (error) {
-      log("Error fetching population history:", error);
+      console.error("Error fetching population history:", error);
       res.status(500).json({ error: "Failed to fetch population history" });
     }
   });
