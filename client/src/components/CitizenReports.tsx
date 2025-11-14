@@ -20,6 +20,8 @@ interface Report {
   timestamp: string | Date;
 }
 
+import { useAuth } from "@/contexts/AuthContext";
+
 interface CitizenReportsProps {
   reports: Report[];
   onStatusChange?: (reportId: string, newStatus: string) => void;
@@ -27,6 +29,7 @@ interface CitizenReportsProps {
 }
 
 export function CitizenReports({ reports, onStatusChange, loading }: CitizenReportsProps) {
+  const { role } = useAuth();
   const statusConfig = {
     pending: { variant: "secondary" as const, label: "Pending", color: "bg-yellow-500" },
     investigating: { variant: "secondary" as const, label: "Investigating", color: "bg-blue-500" },
@@ -185,7 +188,7 @@ export function CitizenReports({ reports, onStatusChange, loading }: CitizenRepo
                     </div>
                   </div>
 
-                  {onStatusChange && (
+                  {onStatusChange && role === "admin" && (
                     <div className="pt-2 border-t">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
