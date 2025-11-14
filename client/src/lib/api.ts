@@ -1,5 +1,36 @@
 import type { Zone, Pump, Alert, CitizenReport, WaterSource } from "../../server/storage";
 
+export const api = {
+  async login(username: string, password: string, expectedRole?: "admin" | "citizen") {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, expectedRole }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Login failed");
+    }
+    return response.json();
+  },
+
+  async getReports() {
+    const response = await fetch("/api/reports");
+    if (!response.ok) throw new Error("Failed to fetch reports");
+    return response.json();
+  },
+
+  async createReport(report: any) {
+    const response = await fetch("/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(report),
+    });
+    if (!response.ok) throw new Error("Failed to create report");
+    return response.json();
+  },
+};
+
 const API_BASE = "/api";
 
 export const api = {

@@ -30,10 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithCredentials = async (username: string, password: string) => {
+  const loginWithCredentials = async (username: string, password: string, expectedRole?: "admin" | "citizen") => {
     const { api } = await import("@/lib/api");
     try {
-      const response = await api.login(username, password);
+      const response = await api.login(username, password, expectedRole);
       setRole(response.role);
       localStorage.setItem("userRole", response.role);
     } catch (error) {

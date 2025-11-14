@@ -2,11 +2,13 @@
 import { PumpSchedule } from "@/components/PumpSchedule";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Pump, Zone, WaterSource } from "../../../server/storage";
 
 export default function PumpSchedulePage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { role } = useAuth();
 
   const { data: pumps = [], isLoading: pumpsLoading } = useQuery<Pump[]>({
     queryKey: ['/api/pumps'],
@@ -84,6 +86,7 @@ export default function PumpSchedulePage() {
         zones={zones}
         sources={sources}
         onUpdate={handleUpdatePump}
+        isReadOnly={role === "citizen"}
       />
     </div>
   );

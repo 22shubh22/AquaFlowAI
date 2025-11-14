@@ -48,6 +48,15 @@ export interface Alert {
   resolved: boolean;
 }
 
+export interface CitizenUser {
+  id: string;
+  username: string;
+  password: string;
+  email: string;
+  phone: string;
+  createdAt: Date;
+}
+
 export interface CitizenReport {
   id: string;
   type: string;
@@ -102,6 +111,11 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
+  // Citizen Users
+  getCitizenUser(id: string): Promise<CitizenUser | undefined>;
+  getCitizenUserByUsername(username: string): Promise<CitizenUser | undefined>;
+  createCitizenUser(user: Omit<CitizenUser, 'id' | 'createdAt'>): Promise<CitizenUser>;
+
   // Zones
   getZones(): Promise<Zone[]>;
   getZone(id: string): Promise<Zone | undefined>;
@@ -143,6 +157,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private citizenUsers: Map<string, CitizenUser>;
   private zones: Map<string, Zone>;
   private waterSources: Map<string, WaterSource>;
   private pumps: Map<string, Pump>;
@@ -154,6 +169,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.citizenUsers = new Map();
     this.zones = new Map();
     this.waterSources = new Map();
     this.pumps = new Map();
@@ -254,6 +270,23 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
+    return user;
+  }
+
+  async getCitizenUser(id: string): Promise<CitizenUser | undefined> {
+    return this.citizenUsers.get(id);
+  }
+
+  async getCitizenUserByUsername(username: string): Promise<CitizenUser | undefined> {
+    return Array.from(this.citizenUsers.values()).find(
+      (user) => user.username === username,
+    );
+  }
+
+  async createCitizenUser(insertUser: Omit<CitizenUser, 'id' | 'createdAt'>): Promise<CitizenUser> {
+    const id = randomUUID();
+    const user: CitizenUser = { ...insertUser, id, createdAt: new Date() };
+    this.citizenUsers.set(id, user);
     return user;
   }
 

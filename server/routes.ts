@@ -6,23 +6,61 @@ import { aiEngine } from "./ai-engine";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication API
   app.post("/api/auth/login", async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, expectedRole } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: "Username and password are required" });
     }
 
-    const user = await storage.getUserByUsername(username);
+    // Check citizen users first if expected role is citizen
+    if (expectedRole === "citizen") {
+      const citizenUser = await storage.getCitizenUserByUsername(username);
+      if (citizenUser && citizenUser.password === password) {
+        return res.json({
+          id: citizenUser.id,
+          username: citizenUser.username,
+          role: "citizen"
+        });
+      }
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
+    // Check admin users
+    const user = await storage.getUserByUsername(username);
     if (!user || user.password !== password) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Return user info without password
     res.json({
       id: user.id,
       username: user.username,
-      role: "admin" // All authenticated users are admins for now
+      role: "admin"
+    });
+  });
+
+  app.post("/api/auth/citizen/signup", async (req, res) => {
+    const { username, password, email, phone } = req.body;
+
+    if (!username || !password || !email || !phone) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const existingUser = await storage.getCitizenUserByUsername(username);
+    if (existingUser) {
+      return res.status(409).json({ error: "Username already exists" });
+    }
+
+    const newUser = await storage.createCitizenUser({
+      username,
+      password,
+      email,
+      phone
+    });
+
+    res.status(201).json({
+      id: newUser.id,
+      username: newUser.username,
+      role: "citizen"
     });
   });
 

@@ -25,9 +25,10 @@ interface PumpScheduleProps {
   zones: Zone[];
   sources: WaterSource[];
   onUpdate: (id: string, data: Partial<Pump>) => void;
+  isReadOnly?: boolean;
 }
 
-export function PumpSchedule({ pumps, zones, sources, onUpdate }: PumpScheduleProps) {
+export function PumpSchedule({ pumps, zones, sources, onUpdate, isReadOnly = false }: PumpScheduleProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
 
@@ -74,7 +75,7 @@ export function PumpSchedule({ pumps, zones, sources, onUpdate }: PumpSchedulePr
                 <TableHead>Status</TableHead>
                 <TableHead>Schedule</TableHead>
                 <TableHead>Flow Rate</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                {!isReadOnly && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -186,34 +187,37 @@ export function PumpSchedule({ pumps, zones, sources, onUpdate }: PumpSchedulePr
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell className="text-right">
-                    {editingId === pump.pumpId ? (
-                      <div className="flex justify-end gap-2">
+                  {!isReadOnly && (
+                    <TableCell className="text-right">
+                      {editingId === pump.pumpId ? (
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSave(pump.pumpId)}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleCancel}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleSave(pump.pumpId)}
+                          onClick={() => handleEdit(pump)}
                         >
-                          <Save className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancel}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(pump)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </TableCell>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
                 </TableRow>
               ))}
             </TableBody>
