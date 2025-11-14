@@ -20,7 +20,7 @@ import type {
   User,
   InsertUser
 } from '../shared/schema';
-import { Blockchain } from './blockchain';
+import { ReportBlockchain } from './blockchain';
 
 // Database connection
 const sql = neon(process.env.DATABASE_URL!);
@@ -135,10 +135,10 @@ const pumpHistory = pgTable("pump_history", {
 });
 
 class DbStorage {
-  private blockchain: Blockchain;
+  private blockchain: typeof ReportBlockchain;
 
   constructor() {
-    this.blockchain = new Blockchain();
+    this.blockchain = ReportBlockchain;
   }
 
   // User methods
@@ -492,7 +492,11 @@ class DbStorage {
       blockNumber,
     };
 
-    const block = this.blockchain.addBlock(reportData);
+    const reportHash = ReportBlockchain.generateHash({
+      id: '', // Will be set after insert
+      ...reportData,
+    });
+    const signature = ReportBlockchain.generateSignature(reportHash, reportData.timestamp);
 
     const result = await db.insert(citizenReports).values({
       type: report.type,
@@ -503,10 +507,10 @@ class DbStorage {
       contact: report.contact,
       status: 'pending',
       images: report.images as any,
-      reportHash: block.hash,
-      previousHash: block.previousHash,
-      blockNumber: block.index,
-      signature: block.signature,
+      reportHash: reportHash,
+      previousHash: previousHash,
+      blockNumber: blockNumber,
+      signature: signature,
       statusHistory: [{
         status: 'pending',
         timestamp: new Date(),
@@ -571,12 +575,16 @@ class DbStorage {
 
   async verifyReportChain(): Promise<{ isValid: boolean; invalidBlocks: number[] }> {
     const reports = await this.getReports();
-    return this.blockchain.verifyChain(reports.reverse());
+    const verification = ReportBlockchain.verifyChain(reports.reverse());
+    return {
+      isValid: verification.valid,
+      invalidBlocks: verification.invalidBlock ? [verification.invalidBlock] : [],
+    };
   }
 
   async getBlockchainStats(): Promise<any> {
     const reports = await this.getReports();
-    return this.blockchain.getStats(reports.reverse());
+    return ReportBlockchain.getChainStats(reports.reverse());
   }
 
   // Historical Data methods
