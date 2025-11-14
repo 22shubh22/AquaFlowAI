@@ -24,27 +24,33 @@ export default function Dashboard() {
     queryKey: ["zones"],
     queryFn: async () => {
       const res = await api.get("/api/zones");
-      return res.json();
+      const data = await res.json();
+      return data;
     },
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    initialData: []
   });
 
   const { data: pumps, refetch: refetchPumps } = useQuery({
     queryKey: ["pumps"],
     queryFn: async () => {
       const res = await api.get("/api/pumps");
-      return res.json();
+      const data = await res.json();
+      return data;
     },
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    initialData: []
   });
 
   const { data: waterSources } = useQuery({
     queryKey: ["water-sources"],
     queryFn: async () => {
       const res = await api.get("/api/water-sources");
-      return res.json();
+      const data = await res.json();
+      return data;
     },
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    initialData: []
   });
 
   const { data: anomalies } = useQuery({

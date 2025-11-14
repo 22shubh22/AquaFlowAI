@@ -14,9 +14,11 @@ export function PipelineMonitor() {
     queryKey: ["zones"],
     queryFn: async () => {
       const res = await api.get("/api/zones");
-      return res.json();
+      const data = await res.json();
+      return data;
     },
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    initialData: []
   });
 
   // Simulate historical data collection
