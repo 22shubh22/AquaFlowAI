@@ -16,7 +16,7 @@ const populationHistory = pgTable("population_history", {
 });
 
 async function seedPopulationHistory() {
-  console.log('📊 Seeding population history for zones...');
+  console.log('📊 Seeding population history for zones (30 years of yearly data)...');
 
   try {
     const zones = await storage.getZones();
@@ -26,21 +26,36 @@ async function seedPopulationHistory() {
       process.exit(1);
     }
 
-    // Generate data for last 30 days (daily snapshots)
+    // Clear existing population history
+    console.log('  Clearing existing population history...');
+    await db.delete(populationHistory);
+
+    // Generate data for last 30 years (yearly snapshots)
     const now = new Date();
+    const currentYear = now.getFullYear();
     const dataPoints: any[] = [];
 
     for (const zone of zones) {
-      const basePopulation = zone.population || 50000;
+      const currentPopulation = zone.population || 50000;
       
-      // Generate 30 days of historical data
-      for (let day = 30; day >= 0; day--) {
-        const timestamp = new Date(now.getTime() - day * 24 * 3600000);
+      // Generate 30 years of historical data (yearly snapshots)
+      for (let yearOffset = 30; yearOffset >= 0; yearOffset--) {
+        const year = currentYear - yearOffset;
+        // Set timestamp to January 1st of each year at midnight
+        const timestamp = new Date(year, 0, 1, 0, 0, 0);
         
-        // Simulate gradual population changes (0.5% to 1.5% growth per month)
-        const growthFactor = 1 + (30 - day) / 30 * (Math.random() * 0.01 + 0.005);
-        const dailyVariation = (Math.random() - 0.5) * 0.002; // ±0.2% daily variation
-        const population = Math.round(basePopulation * growthFactor * (1 + dailyVariation));
+        // Simulate realistic population growth over 30 years
+        // Assume average annual growth rate between 1.5% to 3%
+        const annualGrowthRate = 0.015 + Math.random() * 0.015; // 1.5% to 3%
+        
+        // Calculate population for this year
+        // Working backwards from current population
+        const yearsFromNow = yearOffset;
+        const growthFactor = Math.pow(1 + annualGrowthRate, -yearsFromNow);
+        
+        // Add some random variation (±2% for historical fluctuations)
+        const variation = 1 + (Math.random() - 0.5) * 0.04;
+        const population = Math.round(currentPopulation * growthFactor * variation);
         
         dataPoints.push({
           zoneId: zone.id,
@@ -62,16 +77,24 @@ async function seedPopulationHistory() {
     console.log('\n🎉 Successfully seeded population history!');
     console.log(`  Total data points: ${dataPoints.length}`);
     console.log(`  Zones covered: ${zones.length}`);
-    console.log(`  Time range: Last 30 days (daily snapshots)`);
+    console.log(`  Time range: Last 30 years (yearly snapshots from ${currentYear - 30} to ${currentYear})`);
     
     // Show sample data for verification
     console.log('\n📈 Sample data points:');
     for (const zone of zones.slice(0, 2)) {
-      const zoneSample = dataPoints.filter(d => d.zoneId === zone.id).slice(0, 3);
+      const zoneSample = dataPoints.filter(d => d.zoneId === zone.id).slice(0, 5);
       console.log(`\n  ${zone.name}:`);
       zoneSample.forEach((d, idx) => {
-        console.log(`    ${idx + 1}. Population: ${d.population.toLocaleString()} at ${d.timestamp.toLocaleDateString()}`);
+        const year = d.timestamp.getFullYear();
+        console.log(`    ${year}: Population ${d.population.toLocaleString()}`);
       });
+      
+      // Show growth trend
+      const zoneData = dataPoints.filter(d => d.zoneId === zone.id);
+      const oldestPop = zoneData[0].population;
+      const newestPop = zoneData[zoneData.length - 1].population;
+      const totalGrowth = ((newestPop - oldestPop) / oldestPop * 100).toFixed(1);
+      console.log(`    Total growth over 30 years: ${totalGrowth}%`);
     }
     
     process.exit(0);
