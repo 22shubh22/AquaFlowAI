@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,13 +64,13 @@ function DraggableMarker({ position, onPositionChange }: DraggableMarkerProps) {
         dragend: (e) => {
           const marker = e.target;
           const position = marker.getLatLng();
-          
+
           if (!isWithinRaipur(position.lat, position.lng)) {
             alert("Please select a location within Raipur city limits.");
             setMarkerPos(markerPos); // Reset to previous position
             return;
           }
-          
+
           setMarkerPos([position.lat, position.lng]);
           onPositionChange(position.lat, position.lng);
         },
@@ -152,13 +151,13 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
 
       const responses = await Promise.all(searches);
       const allData = await Promise.all(responses.map(r => r.json()));
-      
+
       // Combine results and deduplicate
       const combinedResults = [...allData[0], ...allData[1]];
       const uniqueResults = Array.from(
         new Map(combinedResults.map(item => [item.place_id, item])).values()
       );
-      
+
       // Filter and sort results
       const raipurResults = uniqueResults
         .filter((result: any) => {
@@ -181,7 +180,7 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
           return distA - distB;
         })
         .slice(0, 10); // Limit to top 10 results
-      
+
       setAddressSuggestions(raipurResults);
     } catch (error) {
       console.error("Geocoding error:", error);
@@ -194,12 +193,12 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
   const handleSelectAddress = (suggestion: any) => {
     const lat = parseFloat(suggestion.lat);
     const lng = parseFloat(suggestion.lon);
-    
+
     if (!isWithinRaipur(lat, lng)) {
       alert("Please select a location within Raipur city limits.");
       return;
     }
-    
+
     setFormData({
       ...formData,
       location: suggestion.display_name,
@@ -212,13 +211,12 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Prepare the report data matching the backend structure
     const reportData = {
       type: formData.type,
       location: formData.location,
       description: formData.description,
-      contact: formData.contact,
       geoLocation: {
         lat: formData.lat,
         lng: formData.lng
@@ -226,9 +224,9 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
       status: "pending",
       timestamp: new Date().toISOString()
     };
-    
+
     onSubmit(reportData);
-    
+
     // Reset form
     setFormData({
       type: "Water Leak",
@@ -236,7 +234,6 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
       lat: 21.25,
       lng: 81.63,
       description: "",
-      contact: "",
       photo: null,
     });
     setSearchAddress("");
@@ -379,19 +376,6 @@ export function ReportForm({ onSubmit }: ReportFormProps) {
             placeholder="Provide details about the issue..."
             required
             className="mt-1 min-h-[100px]"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="contact">Contact Number *</Label>
-          <Input
-            id="contact"
-            type="tel"
-            value={formData.contact}
-            onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-            placeholder="Your phone number"
-            required
-            className="mt-1"
           />
         </div>
 

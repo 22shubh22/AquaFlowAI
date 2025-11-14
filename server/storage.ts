@@ -97,7 +97,7 @@ const citizenReports = pgTable("citizen_reports", {
   geoLat: numeric("geo_lat"),
   geoLng: numeric("geo_lng"),
   description: text("description").notNull(),
-  contact: text("contact").notNull(),
+  userId: varchar("user_id").notNull(),
   status: text("status").notNull().default('pending'),
   timestamp: timestamp("timestamp").defaultNow(),
   images: jsonb("images"),
@@ -185,7 +185,7 @@ class DbStorage {
     // Count reports for each user
     const usersWithReportCount = await Promise.all(
       result.map(async (row) => {
-        const reports = await db.select().from(citizenReports).where(eq(citizenReports.contact, row.username));
+        const reports = await db.select().from(citizenReports).where(eq(citizenReports.userId, row.id!));
         return {
           id: row.id!,
           username: row.username,
@@ -503,7 +503,7 @@ class DbStorage {
       location: row.location,
       geoLocation: row.geoLat && row.geoLng ? { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) } : undefined,
       description: row.description,
-      contact: row.contact,
+      userId: row.userId,
       status: row.status as any,
       timestamp: row.timestamp!,
       images: (row.images as string[]) || undefined,
@@ -540,7 +540,7 @@ class DbStorage {
       geoLat: report.geoLocation?.lat.toString(),
       geoLng: report.geoLocation?.lng.toString(),
       description: report.description,
-      contact: report.contact,
+      userId: report.userId,
       status: 'pending',
       images: report.images as any,
       reportHash: reportHash,
@@ -561,7 +561,7 @@ class DbStorage {
       location: row.location,
       geoLocation: row.geoLat && row.geoLng ? { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) } : undefined,
       description: row.description,
-      contact: row.contact,
+      userId: row.userId,
       status: row.status as any,
       timestamp: row.timestamp!,
       images: (row.images as string[]) || undefined,
@@ -597,7 +597,7 @@ class DbStorage {
       location: row.location,
       geoLocation: row.geoLat && row.geoLng ? { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) } : undefined,
       description: row.description,
-      contact: row.contact,
+      userId: row.userId,
       status: row.status as any,
       timestamp: row.timestamp!,
       images: (row.images as string[]) || undefined,

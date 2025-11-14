@@ -77,7 +77,7 @@ export interface CitizenReport {
   location: string;
   geoLocation?: { lat: number; lng: number };
   description: string;
-  contact: string;
+  userId: string;
   status: "pending" | "investigating" | "resolved";
   timestamp: Date;
   images?: string[];
@@ -158,7 +158,7 @@ export const insertCitizenReportSchema = z.object({
     lng: z.number(),
   }).optional(),
   description: z.string().min(10),
-  contact: z.string().min(1),
+  userId: z.string().min(1),
   images: z.array(z.string()).optional(),
 });
 

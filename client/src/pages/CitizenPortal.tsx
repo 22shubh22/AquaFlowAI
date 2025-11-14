@@ -5,11 +5,13 @@ import { Droplets, Clock, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth"; // Assuming useAuth provides user object with id
 
 export default function CitizenPortal() {
   const { toast } = useToast();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth(); // Get user object from auth context
 
   useEffect(() => {
     loadReports();
@@ -30,14 +32,24 @@ export default function CitizenPortal() {
     }
   };
 
-  const handleSubmit = async (report: any) => {
+  const handleSubmit = async (reportData: any) => {
     try {
-      console.log("Submitting report:", report);
-      const result = await api.createReport(report);
-      console.log("Report created:", result);
+      if (!user?.id) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to submit a report",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await api.createReport({
+        ...reportData,
+        userId: user.id,
+      });
       toast({
-        title: "Report Submitted",
-        description: "Your water issue has been reported. We'll investigate shortly.",
+        title: "Success",
+        description: "Your report has been submitted successfully",
       });
       loadReports();
     } catch (error: any) {
