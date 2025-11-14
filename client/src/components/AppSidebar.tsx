@@ -1,4 +1,4 @@
-import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock, Droplets } from "lucide-react";
+import { Home, Map, AlertTriangle, Users, Settings, FileText, Clock, Droplets, TrendingUp } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -102,6 +102,14 @@ export function AppSidebar() {
                     <a href="/settings" data-testid="link-settings">
                       <Settings className="h-4 w-4" />
                       <span>Settings</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location === "/analytics"}>
+                    <a href="/analytics" data-testid="link-analytics">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Analytics</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

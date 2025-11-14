@@ -60,6 +60,32 @@ export interface CitizenReport {
   images?: string[];
 }
 
+export interface ZoneHistoricalData {
+  id: string;
+  zoneId: string;
+  flowRate: number;
+  pressure: number;
+  timestamp: Date;
+  hour: number; // 0-23
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+}
+
+export interface ReservoirHistory {
+  id: string;
+  sourceId: string;
+  level: number; // percentage
+  timestamp: Date;
+}
+
+export interface PumpHistory {
+  id: string;
+  pumpId: string;
+  status: "active" | "idle" | "maintenance";
+  flowRate: number;
+  timestamp: Date;
+  duration: number; // minutes the pump was in this state
+}
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -91,6 +117,15 @@ export interface IStorage {
   getReports(): Promise<CitizenReport[]>;
   createReport(report: Omit<CitizenReport, 'id' | 'timestamp'>): Promise<CitizenReport>;
   updateReportStatus(id: string, status: CitizenReport['status']): Promise<CitizenReport>;
+
+  // Historical Data
+  getZoneHistory(zoneId: string, hours?: number): Promise<ZoneHistoricalData[]>;
+  recordZoneData(zoneId: string, flowRate: number, pressure: number): Promise<void>;
+  getReservoirHistory(sourceId: string, hours?: number): Promise<ReservoirHistory[]>;
+  recordReservoirData(sourceId: string, level: number): Promise<void>;
+  getPumpHistory(pumpId: string, hours?: number): Promise<PumpHistory[]>;
+  recordPumpData(pumpId: string, status: Pump['status'], flowRate: number, duration: number): Promise<void>;
+  getAggregatedZoneData(hours?: number): Promise<Map<string, ZoneHistoricalData[]>>;
 }
 
 export class MemStorage implements IStorage {
@@ -100,6 +135,9 @@ export class MemStorage implements IStorage {
   private pumps: Map<string, Pump>;
   private alerts: Map<string, Alert>;
   private reports: Map<string, CitizenReport>;
+  private zoneHistory: Map<string, ZoneHistoricalData>;
+  private reservoirHistory: Map<string, ReservoirHistory>;
+  private pumpHistory: Map<string, PumpHistory>;
 
   constructor() {
     this.users = new Map();
@@ -108,8 +146,12 @@ export class MemStorage implements IStorage {
     this.pumps = new Map();
     this.alerts = new Map();
     this.reports = new Map();
+    this.zoneHistory = new Map();
+    this.reservoirHistory = new Map();
+    this.pumpHistory = new Map();
     this.initializeDemoData();
     this.initializeDefaultUsers();
+    this.startHistoricalDataCollection();
   }
 
   private initializeDefaultUsers() {
@@ -306,6 +348,176 @@ export class MemStorage implements IStorage {
     report.status = status;
     this.reports.set(id, report);
     return report;
+  }
+
+  // Historical Data Methods
+  async getZoneHistory(zoneId: string, hours: number = 24): Promise<ZoneHistoricalData[]> {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    return Array.from(this.zoneHistory.values())
+      .filter(h => h.zoneId === zoneId && h.timestamp >= cutoff)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  async recordZoneData(zoneId: string, flowRate: number, pressure: number): Promise<void> {
+    const now = new Date();
+    const id = randomUUID();
+    const record: ZoneHistoricalData = {
+      id,
+      zoneId,
+      flowRate,
+      pressure,
+      timestamp: now,
+      hour: now.getHours(),
+      dayOfWeek: now.getDay()
+    };
+    this.zoneHistory.set(id, record);
+  }
+
+  async getReservoirHistory(sourceId: string, hours: number = 24): Promise<ReservoirHistory[]> {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    return Array.from(this.reservoirHistory.values())
+      .filter(h => h.sourceId === sourceId && h.timestamp >= cutoff)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  async recordReservoirData(sourceId: string, level: number): Promise<void> {
+    const id = randomUUID();
+    const record: ReservoirHistory = {
+      id,
+      sourceId,
+      level,
+      timestamp: new Date()
+    };
+    this.reservoirHistory.set(id, record);
+  }
+
+  async getPumpHistory(pumpId: string, hours: number = 24): Promise<PumpHistory[]> {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    return Array.from(this.pumpHistory.values())
+      .filter(h => h.pumpId === pumpId && h.timestamp >= cutoff)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  async recordPumpData(pumpId: string, status: Pump['status'], flowRate: number, duration: number): Promise<void> {
+    const id = randomUUID();
+    const record: PumpHistory = {
+      id,
+      pumpId,
+      status,
+      flowRate,
+      timestamp: new Date(),
+      duration
+    };
+    this.pumpHistory.set(id, record);
+  }
+
+  async getAggregatedZoneData(hours: number = 168): Promise<Map<string, ZoneHistoricalData[]>> {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const aggregated = new Map<string, ZoneHistoricalData[]>();
+    
+    for (const record of this.zoneHistory.values()) {
+      if (record.timestamp >= cutoff) {
+        const existing = aggregated.get(record.zoneId) || [];
+        existing.push(record);
+        aggregated.set(record.zoneId, existing);
+      }
+    }
+    
+    return aggregated;
+  }
+
+  private startHistoricalDataCollection() {
+    // Generate historical data for the past 7 days
+    this.generateHistoricalData();
+    
+    // Record current data every 15 minutes
+    setInterval(() => {
+      this.recordCurrentState();
+    }, 15 * 60 * 1000);
+  }
+
+  private generateHistoricalData() {
+    const now = new Date();
+    const zones = Array.from(this.zones.values());
+    const sources = Array.from(this.waterSources.values());
+    const pumps = Array.from(this.pumps.values());
+
+    // Generate 7 days of historical data
+    for (let day = 7; day >= 0; day--) {
+      for (let hour = 0; hour < 24; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+          const timestamp = new Date(now.getTime() - (day * 24 * 60 * 60 * 1000) - ((23 - hour) * 60 * 60 * 1000) - ((60 - minute) * 60 * 1000));
+          
+          // Record zone data with patterns (higher demand morning 6-9 and evening 18-21)
+          zones.forEach(zone => {
+            const baseFlow = zone.flowRate;
+            const basePressure = zone.pressure;
+            const isPeakHour = (hour >= 6 && hour <= 9) || (hour >= 18 && hour <= 21);
+            const variation = Math.random() * 0.2 - 0.1; // ±10% variation
+            
+            const flowRate = baseFlow * (isPeakHour ? 1.3 : 0.7) * (1 + variation);
+            const pressure = basePressure * (isPeakHour ? 0.9 : 1.1) * (1 + variation);
+            
+            const id = randomUUID();
+            this.zoneHistory.set(id, {
+              id,
+              zoneId: zone.id,
+              flowRate,
+              pressure,
+              timestamp,
+              hour: timestamp.getHours(),
+              dayOfWeek: timestamp.getDay()
+            });
+          });
+
+          // Record reservoir levels (gradually decreasing during peak hours)
+          sources.forEach(source => {
+            const baseLevel = source.currentLevel;
+            const isPeakHour = (hour >= 6 && hour <= 9) || (hour >= 18 && hour <= 21);
+            const level = baseLevel + (Math.random() * 10 - 5) - (isPeakHour ? 2 : -1);
+            
+            const id = randomUUID();
+            this.reservoirHistory.set(id, {
+              id,
+              sourceId: source.id,
+              level: Math.max(0, Math.min(100, level)),
+              timestamp
+            });
+          });
+
+          // Record pump activity
+          pumps.forEach(pump => {
+            const id = randomUUID();
+            this.pumpHistory.set(id, {
+              id,
+              pumpId: pump.id,
+              status: pump.status,
+              flowRate: pump.flowRate * (Math.random() * 0.2 + 0.9),
+              timestamp,
+              duration: 15
+            });
+          });
+        }
+      }
+    }
+  }
+
+  private recordCurrentState() {
+    const zones = Array.from(this.zones.values());
+    const sources = Array.from(this.waterSources.values());
+    const pumps = Array.from(this.pumps.values());
+
+    zones.forEach(zone => {
+      this.recordZoneData(zone.id, zone.flowRate, zone.pressure);
+    });
+
+    sources.forEach(source => {
+      this.recordReservoirData(source.id, source.currentLevel);
+    });
+
+    pumps.forEach(pump => {
+      this.recordPumpData(pump.id, pump.status, pump.flowRate, 15);
+    });
   }
 }
 

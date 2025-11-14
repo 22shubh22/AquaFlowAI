@@ -143,17 +143,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Historical Data API
+  app.get("/api/historical/zones/:zoneId", async (req, res) => {
+    const hours = parseInt(req.query.hours as string) || 24;
+    const history = await storage.getZoneHistory(req.params.zoneId, hours);
+    res.json(history);
+  });
+
+  app.get("/api/historical/zones", async (req, res) => {
+    const hours = parseInt(req.query.hours as string) || 168;
+    const aggregated = await storage.getAggregatedZoneData(hours);
+    const result: any = {};
+    aggregated.forEach((data, zoneId) => {
+      result[zoneId] = data;
+    });
+    res.json(result);
+  });
+
+  app.get("/api/historical/reservoirs/:sourceId", async (req, res) => {
+    const hours = parseInt(req.query.hours as string) || 24;
+    const history = await storage.getReservoirHistory(req.params.sourceId, hours);
+    res.json(history);
+  });
+
+  app.get("/api/historical/pumps/:pumpId", async (req, res) => {
+    const hours = parseInt(req.query.hours as string) || 24;
+    const history = await storage.getPumpHistory(req.params.pumpId, hours);
+    res.json(history);
+  });
+
   // Analytics API for AI insights
   app.get("/api/analytics/demand-prediction", async (req, res) => {
     const zones = await storage.getZones();
+    const historicalData = await storage.getAggregatedZoneData(168); // 7 days
     
-    // Simple prediction based on current patterns
-    const predictions = zones.map(zone => ({
-      zoneId: zone.id,
-      zoneName: zone.name,
-      predictedDemand: zone.flowRate * (1 + Math.random() * 0.4 - 0.2),
-      confidence: 0.75 + Math.random() * 0.2,
-      timeWindow: "Next 2 hours"
+    // Enhanced prediction using historical patterns
+    const predictions = await Promise.all(zones.map(async zone => {
+      const history = historicalData.get(zone.id) || [];
+      
+      // Calculate average demand by hour of day
+      const currentHour = new Date().getHours();
+      const nextHour = (currentHour + 2) % 24;
+      
+      const historicalAtHour = history.filter(h => h.hour >= currentHour && h.hour <= nextHour);
+      const avgFlow = historicalAtHour.length > 0
+        ? historicalAtHour.reduce((sum, h) => sum + h.flowRate, 0) / historicalAtHour.length
+        : zone.flowRate;
+      
+      const predictedDemand = avgFlow * (1 + Math.random() * 0.1 - 0.05);
+      const confidence = Math.min(0.95, 0.6 + (historicalAtHour.length / 100));
+      
+      return {
+        zoneId: zone.id,
+        zoneName: zone.name,
+        currentDemand: zone.flowRate,
+        predictedDemand: Math.round(predictedDemand),
+        confidence: Math.round(confidence * 100) / 100,
+        timeWindow: "Next 2 hours",
+        trend: predictedDemand > zone.flowRate ? "increasing" : "decreasing"
+      };
     }));
     
     res.json(predictions);
