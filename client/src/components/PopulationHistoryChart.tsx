@@ -38,7 +38,7 @@ export function PopulationHistoryChart({ zoneId, zoneName }: PopulationHistoryCh
   const chartData = populationHistory.map((h: any) => ({
     time: new Date(h.timestamp).getFullYear().toString(),
     population: h.population
-  })).reverse(); // Reverse to show oldest to newest
+  })); // Already sorted oldest to newest from the query
 
   // Calculate trend
   const trend = chartData.length >= 2 
