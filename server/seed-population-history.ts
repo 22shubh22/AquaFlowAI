@@ -39,23 +39,27 @@ async function seedPopulationHistory() {
       const currentPopulation = zone.population || 50000;
       
       // Generate 30 years of historical data (yearly snapshots)
+      // Use a consistent growth rate for this zone
+      const annualGrowthRate = 0.015 + Math.random() * 0.015; // 1.5% to 3% annual growth
+      
       for (let yearOffset = 30; yearOffset >= 0; yearOffset--) {
         const year = currentYear - yearOffset;
         // Set timestamp to January 1st of each year at midnight
         const timestamp = new Date(year, 0, 1, 0, 0, 0);
         
-        // Simulate realistic population growth over 30 years
-        // Assume average annual growth rate between 1.5% to 3%
-        const annualGrowthRate = 0.015 + Math.random() * 0.015; // 1.5% to 3%
-        
         // Calculate population for this year
-        // Working backwards from current population
-        const yearsFromNow = yearOffset;
-        const growthFactor = Math.pow(1 + annualGrowthRate, -yearsFromNow);
+        // Start from a base population 30 years ago and grow forward
+        const yearsFromStart = 30 - yearOffset; // How many years have passed since 30 years ago
+        
+        // Calculate what the population was 30 years ago
+        const populationThirtyYearsAgo = Math.round(currentPopulation / Math.pow(1 + annualGrowthRate, 30));
+        
+        // Now calculate population for this specific year by growing from that base
+        const growthFactor = Math.pow(1 + annualGrowthRate, yearsFromStart);
         
         // Add some random variation (±2% for historical fluctuations)
         const variation = 1 + (Math.random() - 0.5) * 0.04;
-        const population = Math.round(currentPopulation * growthFactor * variation);
+        const population = Math.round(populationThirtyYearsAgo * growthFactor * variation);
         
         dataPoints.push({
           zoneId: zone.id,
