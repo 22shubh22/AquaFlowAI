@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ export function AIEquityDashboard() {
     refetchInterval: 60000
   });
 
-  const { data: optimalSchedules } = useQuery({
+  const { data: optimalSchedules, isLoading: isLoadingSchedules } = useQuery({
     queryKey: ["optimal-schedules"],
     queryFn: api.getOptimalSchedules,
     refetchInterval: 300000 // Refresh every 5 minutes
@@ -22,6 +21,9 @@ export function AIEquityDashboard() {
   const equityScore = equityData?.score || 0;
   const equityLevel = equityScore >= 80 ? "Excellent" : equityScore >= 60 ? "Good" : equityScore >= 40 ? "Fair" : "Poor";
   const equityColor = equityScore >= 80 ? "text-chart-2" : equityScore >= 60 ? "text-chart-1" : equityScore >= 40 ? "text-yellow-500" : "text-destructive";
+
+  // Assuming 'schedules' should be 'optimalSchedules' based on the context
+  const schedules = optimalSchedules || [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -45,10 +47,10 @@ export function AIEquityDashboard() {
                 {equityLevel}
               </Badge>
             </div>
-            
+
             <div className="pt-4 border-t">
               <p className="text-sm text-muted-foreground">
-                This score measures how equitably water is distributed across zones based on per-capita flow rates. 
+                This score measures how equitably water is distributed across zones based on per-capita flow rates.
                 A score of 100 indicates perfectly equal distribution.
               </p>
             </div>
@@ -75,33 +77,28 @@ export function AIEquityDashboard() {
           <CardDescription>Optimized pump schedules for next 24 hours</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 max-h-[300px] overflow-y-auto">
-            {optimalSchedules?.slice(0, 5).map((schedule: any, index: number) => (
-              <div key={index} className="p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                <div className="flex items-start justify-between gap-2">
+          <div className="space-y-4">
+            {!schedules || schedules.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No schedules available. The AI engine is calculating optimal schedules...</p>
+            ) : (
+              schedules.map((schedule, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{schedule.pumpId}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{schedule.reason}</p>
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="font-medium">{schedule.startTime} - {schedule.endTime}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {schedule.flowRate} L/h
-                      </Badge>
-                    </div>
+                    <p className="font-medium">{schedule.zoneName || 'Unknown Zone'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {schedule.startTime || 'N/A'} - {schedule.endTime || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">
+                      {schedule.flowRate ? Math.round(schedule.flowRate).toLocaleString() : '0'} L/h
+                    </p>
+                    <p className="text-xs text-muted-foreground">{schedule.reason || 'Optimizing...'}</p>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
-          
-          {optimalSchedules && optimalSchedules.length > 5 && (
-            <Button variant="outline" className="w-full mt-4" size="sm">
-              View All {optimalSchedules.length} Recommendations
-            </Button>
-          )}
         </CardContent>
       </Card>
     </div>

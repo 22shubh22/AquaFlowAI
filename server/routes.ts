@@ -378,6 +378,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(suggestions);
   });
 
+  // Get AI-recommended pump schedules
+  app.get('/api/ai/schedules', async (req, res) => {
+    try {
+      const zones = await storage.getZones();
+      const pumps = await storage.getPumps();
+      const historicalDataMap = await storage.getAggregatedZoneData(24);
+
+      const schedules = aiEngine.generatePumpSchedules(zones, pumps, historicalDataMap);
+
+      // Ensure we always return an array
+      if (!schedules || schedules.length === 0) {
+        console.log('No schedules generated, returning empty array');
+        return res.json([]);
+      }
+
+      console.log(`Generated ${schedules.length} pump schedules`);
+      res.json(schedules);
+    } catch (error) {
+      console.error('Error generating pump schedules:', error);
+      res.status(500).json({ error: 'Failed to generate pump schedules' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
