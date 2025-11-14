@@ -1,625 +1,657 @@
-import { 
-  type User, 
-  type InsertUser,
-  type Zone,
-  type WaterSource,
-  type Pump,
-  type Alert,
-  type CitizenUser,
-  type CitizenReport,
-  type ZoneHistoricalData,
-  type ReservoirHistory,
-  type PumpHistory
-} from "@shared/schema";
-import { randomUUID, createHash } from "crypto";
 
-export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { eq, desc, and, gte } from 'drizzle-orm';
+import * as schema from '../shared/schema';
+import type { 
+  Zone, 
+  WaterSource, 
+  Pump, 
+  Alert, 
+  CitizenUser,
+  CitizenReport,
+  ZoneHistoricalData,
+  ReservoirHistory,
+  PumpHistory,
+  InsertZone,
+  InsertWaterSource,
+  InsertCitizenUser,
+  InsertCitizenReport,
+  User,
+  InsertUser
+} from '../shared/schema';
+import { Blockchain } from './blockchain';
 
-  // Citizen Users
-  getCitizenUser(id: string): Promise<CitizenUser | undefined>;
-  getCitizenUserByUsername(username: string): Promise<CitizenUser | undefined>;
-  createCitizenUser(user: Omit<CitizenUser, 'id' | 'createdAt'>): Promise<CitizenUser>;
+// Database connection
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql);
 
-  // Zones
-  getZones(): Promise<Zone[]>;
-  getZone(id: string): Promise<Zone | undefined>;
-  createZone(zone: Omit<Zone, 'id' | 'lastUpdated'>): Promise<Zone>;
-  updateZone(id: string, data: Partial<Zone>): Promise<Zone>;
-  deleteZone(id: string): Promise<void>;
+// Define database tables
+import { pgTable, text, varchar, numeric, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
+import { sql as sqlOperator } from "drizzle-orm";
 
-  // Water Sources
-  getWaterSources(): Promise<WaterSource[]>;
-  getWaterSource(id: string): Promise<WaterSource | undefined>;
-  createWaterSource(source: Omit<WaterSource, 'id'>): Promise<WaterSource>;
-  updateWaterSource(id: string, data: Partial<WaterSource>): Promise<WaterSource>;
-  deleteWaterSource(id: string): Promise<void>;
+const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+});
 
-  // Pumps
-  getPumps(): Promise<Pump[]>;
-  getPump(id: string): Promise<Pump | undefined>;
-  updatePump(id: string, data: Partial<Pump>): Promise<Pump>;
+const citizenUsers = pgTable("citizen_users", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-  // Alerts
-  getAlerts(): Promise<Alert[]>;
-  createAlert(alert: Omit<Alert, 'id'>): Promise<Alert>;
-  resolveAlert(id: string): Promise<void>;
+const zones = pgTable("zones", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  status: text("status").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  pressure: numeric("pressure").notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  lat: numeric("lat").notNull(),
+  lng: numeric("lng").notNull(),
+});
 
-  // Citizen Reports
-  getReports(): Promise<CitizenReport[]>;
-  createReport(report: Omit<CitizenReport, 'id' | 'timestamp'>): Promise<CitizenReport>;
-  updateReportStatus(id: string, status: CitizenReport['status']): Promise<CitizenReport>;
+const waterSources = pgTable("water_sources", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  location: text("location").notNull(),
+  geoLat: numeric("geo_lat").notNull(),
+  geoLng: numeric("geo_lng").notNull(),
+  capacity: numeric("capacity").notNull(),
+  currentLevel: numeric("current_level").notNull(),
+  quality: text("quality").notNull(),
+  lastTested: timestamp("last_tested"),
+  status: text("status").notNull(),
+});
 
-  // Historical Data
-  getZoneHistory(zoneId: string, hours?: number): Promise<ZoneHistoricalData[]>;
-  recordZoneData(zoneId: string, flowRate: number, pressure: number): Promise<void>;
-  getReservoirHistory(sourceId: string, hours?: number): Promise<ReservoirHistory[]>;
-  recordReservoirData(sourceId: string, level: number): Promise<void>;
-  getPumpHistory(pumpId: string, hours?: number): Promise<PumpHistory[]>;
-  recordPumpData(pumpId: string, status: Pump['status'], flowRate: number, duration: number): Promise<void>;
-  getAggregatedZoneData(hours?: number): Promise<Map<string, ZoneHistoricalData[]>>;
-}
+const pumps = pgTable("pumps", {
+  id: varchar("id").primaryKey(),
+  zoneId: varchar("zone_id").notNull(),
+  sourceId: varchar("source_id").notNull(),
+  status: text("status").notNull(),
+  schedule: text("schedule").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  lastMaintenance: timestamp("last_maintenance"),
+});
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private citizenUsers: Map<string, CitizenUser>;
-  private zones: Map<string, Zone>;
-  private waterSources: Map<string, WaterSource>;
-  private pumps: Map<string, Pump>;
-  private alerts: Map<string, Alert>;
-  private reports: Map<string, CitizenReport>;
-  private zoneHistory: Map<string, ZoneHistoricalData>;
-  private reservoirHistory: Map<string, ReservoirHistory>;
-  private pumpHistory: Map<string, PumpHistory>;
+const alerts = pgTable("alerts", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  type: text("type").notNull(),
+  zoneId: varchar("zone_id").notNull(),
+  severity: text("severity").notNull(),
+  message: text("message").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  resolved: boolean("resolved").default(false),
+});
+
+const citizenReports = pgTable("citizen_reports", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  type: text("type").notNull(),
+  location: text("location").notNull(),
+  geoLat: numeric("geo_lat"),
+  geoLng: numeric("geo_lng"),
+  description: text("description").notNull(),
+  contact: text("contact").notNull(),
+  status: text("status").notNull().default('pending'),
+  timestamp: timestamp("timestamp").defaultNow(),
+  images: jsonb("images"),
+  reportHash: text("report_hash").notNull(),
+  previousHash: text("previous_hash").notNull(),
+  blockNumber: integer("block_number").notNull(),
+  signature: text("signature").notNull(),
+  statusHistory: jsonb("status_history").notNull(),
+});
+
+const zoneHistory = pgTable("zone_history", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  zoneId: varchar("zone_id").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  pressure: numeric("pressure").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  hour: integer("hour").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(),
+});
+
+const reservoirHistory = pgTable("reservoir_history", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  sourceId: varchar("source_id").notNull(),
+  level: numeric("level").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+const pumpHistory = pgTable("pump_history", {
+  id: varchar("id").primaryKey().default(sqlOperator`gen_random_uuid()`),
+  pumpId: varchar("pump_id").notNull(),
+  status: text("status").notNull(),
+  flowRate: numeric("flow_rate").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  duration: integer("duration").notNull(),
+});
+
+class DbStorage {
+  private blockchain: Blockchain;
 
   constructor() {
-    this.users = new Map();
-    this.citizenUsers = new Map();
-    this.zones = new Map();
-    this.waterSources = new Map();
-    this.pumps = new Map();
-    this.alerts = new Map();
-    this.reports = new Map();
-    this.zoneHistory = new Map();
-    this.reservoirHistory = new Map();
-    this.pumpHistory = new Map();
-    this.initializeDemoData();
-    this.initializeDefaultUsers();
-    this.startHistoricalDataCollection();
+    this.blockchain = new Blockchain();
   }
 
-  private initializeDefaultUsers() {
-    // Create default admin user
-    const adminUser: User = {
-      id: "admin-1",
-      username: "admin",
-      password: "admin123" // In production, this should be hashed
-    };
-    this.users.set(adminUser.id, adminUser);
+  // User methods
+  async getUserByUsername(username: string): Promise<User | null> {
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0] || null;
   }
 
-  private initializeDemoData() {
-    // Initialize water sources for Raipur
-    const waterSources: WaterSource[] = [
-      { id: "SRC-1", name: "Mahanadi River", type: "river", location: "North Raipur", geoLocation: { lat: 21.2700, lng: 81.6300 }, capacity: 5000000, currentLevel: 78, quality: "good", lastTested: new Date(), status: "active" },
-      { id: "SRC-2", name: "Kharun River", type: "river", location: "East Raipur", geoLocation: { lat: 21.2200, lng: 81.6900 }, capacity: 3000000, currentLevel: 65, quality: "good", lastTested: new Date(), status: "active" },
-      { id: "SRC-3", name: "Telibandha Lake", type: "lake", location: "Central Raipur", geoLocation: { lat: 21.2500, lng: 81.6450 }, capacity: 800000, currentLevel: 85, quality: "excellent", lastTested: new Date(), status: "active" },
-      { id: "SRC-4", name: "Budha Talab", type: "lake", location: "South Raipur", geoLocation: { lat: 21.2100, lng: 81.6350 }, capacity: 500000, currentLevel: 72, quality: "good", lastTested: new Date(), status: "active" },
-      { id: "SRC-5", name: "Borewell Cluster A", type: "borewell", location: "Devendra Nagar", geoLocation: { lat: 21.2280, lng: 81.6050 }, capacity: 200000, currentLevel: 58, quality: "fair", lastTested: new Date(), status: "active" },
-      { id: "SRC-6", name: "Borewell Cluster B", type: "borewell", location: "Gudhiyari", geoLocation: { lat: 21.2000, lng: 81.6420 }, capacity: 180000, currentLevel: 45, quality: "fair", lastTested: new Date(), status: "active" },
-      { id: "SRC-7", name: "Kharora Reservoir", type: "reservoir", location: "West Raipur", geoLocation: { lat: 21.2400, lng: 81.5800 }, capacity: 1200000, currentLevel: 82, quality: "excellent", lastTested: new Date(), status: "active" },
-      { id: "SRC-8", name: "Urla Borewell Complex", type: "borewell", location: "Urla Industrial", geoLocation: { lat: 21.1920, lng: 81.7020 }, capacity: 300000, currentLevel: 62, quality: "good", lastTested: new Date(), status: "active" },
-    ];
-    waterSources.forEach(s => this.waterSources.set(s.id, s));
-
-    // Initialize zones with actual Raipur coordinates
-    const zones: Zone[] = [
-      { id: "RAI-1", name: "Civil Lines", status: "optimal", flowRate: 520, pressure: 50, lastUpdated: new Date(), lat: 21.2447, lng: 81.6340 },
-      { id: "RAI-2", name: "Shankar Nagar", status: "optimal", flowRate: 480, pressure: 48, lastUpdated: new Date(), lat: 21.2380, lng: 81.6180 },
-      { id: "RAI-3", name: "Devendra Nagar", status: "low-pressure", flowRate: 320, pressure: 35, lastUpdated: new Date(), lat: 21.2280, lng: 81.6050 },
-      { id: "RAI-4", name: "Pandri", status: "optimal", flowRate: 450, pressure: 46, lastUpdated: new Date(), lat: 21.2334, lng: 81.6520 },
-      { id: "RAI-5", name: "Mowa", status: "high-demand", flowRate: 580, pressure: 42, lastUpdated: new Date(), lat: 21.2580, lng: 81.6580 },
-      { id: "RAI-6", name: "Tatibandh", status: "optimal", flowRate: 410, pressure: 47, lastUpdated: new Date(), lat: 21.2160, lng: 81.6680 },
-      { id: "RAI-7", name: "Gudhiyari", status: "low-pressure", flowRate: 340, pressure: 36, lastUpdated: new Date(), lat: 21.2000, lng: 81.6420 },
-      { id: "RAI-8", name: "Kota", status: "high-demand", flowRate: 620, pressure: 40, lastUpdated: new Date(), lat: 21.2100, lng: 81.6850 },
-      { id: "RAI-9", name: "Sunder Nagar", status: "optimal", flowRate: 490, pressure: 49, lastUpdated: new Date(), lat: 21.2420, lng: 81.6080 },
-      { id: "RAI-10", name: "Urla", status: "high-demand", flowRate: 720, pressure: 38, lastUpdated: new Date(), lat: 21.1920, lng: 81.7020 },
-      { id: "RAI-11", name: "Amanaka", status: "optimal", flowRate: 460, pressure: 47, lastUpdated: new Date(), lat: 21.1850, lng: 81.6750 },
-      { id: "RAI-12", name: "Telibandha", status: "optimal", flowRate: 500, pressure: 48, lastUpdated: new Date(), lat: 21.2500, lng: 81.6450 },
-    ];
-    zones.forEach(z => this.zones.set(z.id, z));
-
-    // Initialize pumps with water source references
-    const pumps: Pump[] = [
-      { id: "P1", zoneId: "RAI-1", sourceId: "SRC-1", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 180 },
-      { id: "P2", zoneId: "RAI-1", sourceId: "SRC-7", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
-      { id: "P3", zoneId: "RAI-2", sourceId: "SRC-1", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 160 },
-      { id: "P4", zoneId: "RAI-3", sourceId: "SRC-5", status: "idle", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 0 },
-      { id: "P5", zoneId: "RAI-3", sourceId: "SRC-5", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 160 },
-      { id: "P6", zoneId: "RAI-4", sourceId: "SRC-2", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 150 },
-      { id: "P7", zoneId: "RAI-5", sourceId: "SRC-1", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 190 },
-      { id: "P8", zoneId: "RAI-5", sourceId: "SRC-2", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 200 },
-      { id: "P9", zoneId: "RAI-6", sourceId: "SRC-2", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 140 },
-      { id: "P10", zoneId: "RAI-7", sourceId: "SRC-6", status: "maintenance", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 0 },
-      { id: "P11", zoneId: "RAI-7", sourceId: "SRC-6", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
-      { id: "P12", zoneId: "RAI-8", sourceId: "SRC-2", status: "active", schedule: "05:30 - 09:30, 17:30 - 21:30", flowRate: 210 },
-      { id: "P13", zoneId: "RAI-9", sourceId: "SRC-7", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 165 },
-      { id: "P14", zoneId: "RAI-10", sourceId: "SRC-8", status: "active", schedule: "00:00 - 24:00", flowRate: 240 },
-      { id: "P15", zoneId: "RAI-10", sourceId: "SRC-8", status: "active", schedule: "00:00 - 24:00", flowRate: 240 },
-      { id: "P16", zoneId: "RAI-11", sourceId: "SRC-2", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 155 },
-      { id: "P17", zoneId: "RAI-12", sourceId: "SRC-3", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 170 },
-      { id: "P18", zoneId: "RAI-12", sourceId: "SRC-3", status: "active", schedule: "06:00 - 09:00, 18:00 - 21:00", flowRate: 165 },
-    ];
-    pumps.forEach(p => this.pumps.set(p.id, p));
-
-    // Initialize alerts
-    const alerts: Alert[] = [
-      { id: "A1", type: "pressure-drop", zoneId: "RAI-3", severity: "warning", message: "Pressure drop detected in Devendra Nagar area", timestamp: new Date(), resolved: false },
-      { id: "A2", type: "excess-pumping", zoneId: "RAI-10", severity: "critical", message: "Excess pumping detected in Urla Industrial area", timestamp: new Date(), resolved: false },
-      { id: "A3", type: "leak-detected", zoneId: "RAI-7", severity: "warning", message: "Potential leak detected near Gudhiyari", timestamp: new Date(), resolved: false },
-    ];
-    alerts.forEach(a => this.alerts.set(a.id, a));
+  async createUser(user: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(user).returning();
+    return result[0];
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  async getCitizenUser(id: string): Promise<CitizenUser | undefined> {
-    return this.citizenUsers.get(id);
-  }
-
-  async getCitizenUserByUsername(username: string): Promise<CitizenUser | undefined> {
-    return Array.from(this.citizenUsers.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async getCitizenUsers(): Promise<Array<CitizenUser & { reportCount: number }>> {
-    const users = Array.from(this.citizenUsers.values());
-    const reports = Array.from(this.reports.values());
-    
-    return users.map(user => ({
-      ...user,
-      reportCount: reports.filter(r => r.contact.includes(user.username) || r.contact.includes(user.email)).length
+  // Citizen User methods
+  async getCitizenUsers(): Promise<CitizenUser[]> {
+    const result = await db.select().from(citizenUsers);
+    return result.map(row => ({
+      id: row.id!,
+      username: row.username,
+      password: row.password,
+      email: row.email,
+      phone: row.phone,
+      createdAt: row.createdAt!,
     }));
   }
 
-  async createCitizenUser(insertUser: Omit<CitizenUser, 'id' | 'createdAt'>): Promise<CitizenUser> {
-    const id = randomUUID();
-    const user: CitizenUser = { ...insertUser, id, createdAt: new Date() };
-    this.citizenUsers.set(id, user);
-    return user;
-  }
-
-  async getZones(): Promise<Zone[]> {
-    return Array.from(this.zones.values());
-  }
-
-  async getZone(id: string): Promise<Zone | undefined> {
-    return this.zones.get(id);
-  }
-
-  async createZone(zone: Omit<Zone, 'id' | 'lastUpdated'>): Promise<Zone> {
-    const zoneCount = this.zones.size + 1;
-    const id = `RAI-${zoneCount}`;
-    const newZone: Zone = { 
-      ...zone, 
-      id,
-      lastUpdated: new Date() 
+  async getCitizenUserByUsername(username: string): Promise<CitizenUser | null> {
+    const result = await db.select().from(citizenUsers).where(eq(citizenUsers.username, username)).limit(1);
+    if (!result[0]) return null;
+    return {
+      id: result[0].id!,
+      username: result[0].username,
+      password: result[0].password,
+      email: result[0].email,
+      phone: result[0].phone,
+      createdAt: result[0].createdAt!,
     };
-    this.zones.set(id, newZone);
-    return newZone;
   }
 
-  async updateZone(id: string, data: Partial<Zone>): Promise<Zone> {
-    const zone = this.zones.get(id);
-    if (!zone) throw new Error("Zone not found");
-    const updated = { ...zone, ...data, lastUpdated: new Date() };
-    this.zones.set(id, updated);
-    return updated;
+  async createCitizenUser(user: InsertCitizenUser): Promise<CitizenUser> {
+    const result = await db.insert(citizenUsers).values(user).returning();
+    return {
+      id: result[0].id!,
+      username: result[0].username,
+      password: result[0].password,
+      email: result[0].email,
+      phone: result[0].phone,
+      createdAt: result[0].createdAt!,
+    };
+  }
+
+  // Zone methods
+  async getZones(): Promise<Zone[]> {
+    const result = await db.select().from(zones);
+    return result.map(row => ({
+      id: row.id,
+      name: row.name,
+      status: row.status as any,
+      flowRate: parseFloat(row.flowRate),
+      pressure: parseFloat(row.pressure),
+      lastUpdated: row.lastUpdated!,
+      lat: parseFloat(row.lat),
+      lng: parseFloat(row.lng),
+    }));
+  }
+
+  async getZone(id: string): Promise<Zone | null> {
+    const result = await db.select().from(zones).where(eq(zones.id, id)).limit(1);
+    if (!result[0]) return null;
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      status: row.status as any,
+      flowRate: parseFloat(row.flowRate),
+      pressure: parseFloat(row.pressure),
+      lastUpdated: row.lastUpdated!,
+      lat: parseFloat(row.lat),
+      lng: parseFloat(row.lng),
+    };
+  }
+
+  async createZone(zone: InsertZone): Promise<Zone> {
+    const id = `Z${Date.now()}`;
+    const result = await db.insert(zones).values({
+      id,
+      name: zone.name,
+      status: zone.status,
+      flowRate: zone.flowRate.toString(),
+      pressure: zone.pressure.toString(),
+      lat: zone.lat.toString(),
+      lng: zone.lng.toString(),
+    }).returning();
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      status: row.status as any,
+      flowRate: parseFloat(row.flowRate),
+      pressure: parseFloat(row.pressure),
+      lastUpdated: row.lastUpdated!,
+      lat: parseFloat(row.lat),
+      lng: parseFloat(row.lng),
+    };
+  }
+
+  async updateZone(id: string, updates: Partial<Zone>): Promise<Zone> {
+    const updateData: any = {};
+    if (updates.name) updateData.name = updates.name;
+    if (updates.status) updateData.status = updates.status;
+    if (updates.flowRate !== undefined) updateData.flowRate = updates.flowRate.toString();
+    if (updates.pressure !== undefined) updateData.pressure = updates.pressure.toString();
+    if (updates.lat !== undefined) updateData.lat = updates.lat.toString();
+    if (updates.lng !== undefined) updateData.lng = updates.lng.toString();
+    updateData.lastUpdated = new Date();
+
+    const result = await db.update(zones).set(updateData).where(eq(zones.id, id)).returning();
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      status: row.status as any,
+      flowRate: parseFloat(row.flowRate),
+      pressure: parseFloat(row.pressure),
+      lastUpdated: row.lastUpdated!,
+      lat: parseFloat(row.lat),
+      lng: parseFloat(row.lng),
+    };
   }
 
   async deleteZone(id: string): Promise<void> {
-    const zone = this.zones.get(id);
-    if (!zone) throw new Error("Zone not found");
-    this.zones.delete(id);
+    await db.delete(zones).where(eq(zones.id, id));
   }
 
+  // Water Source methods
   async getWaterSources(): Promise<WaterSource[]> {
-    return Array.from(this.waterSources.values());
+    const result = await db.select().from(waterSources);
+    return result.map(row => ({
+      id: row.id,
+      name: row.name,
+      type: row.type as any,
+      location: row.location,
+      geoLocation: { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) },
+      capacity: parseFloat(row.capacity),
+      currentLevel: parseFloat(row.currentLevel),
+      quality: row.quality as any,
+      lastTested: row.lastTested || undefined,
+      status: row.status as any,
+    }));
   }
 
-  async getWaterSource(id: string): Promise<WaterSource | undefined> {
-    return this.waterSources.get(id);
+  async getWaterSource(id: string): Promise<WaterSource | null> {
+    const result = await db.select().from(waterSources).where(eq(waterSources.id, id)).limit(1);
+    if (!result[0]) return null;
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      type: row.type as any,
+      location: row.location,
+      geoLocation: { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) },
+      capacity: parseFloat(row.capacity),
+      currentLevel: parseFloat(row.currentLevel),
+      quality: row.quality as any,
+      lastTested: row.lastTested || undefined,
+      status: row.status as any,
+    };
   }
 
-  async createWaterSource(source: Omit<WaterSource, 'id'>): Promise<WaterSource> {
-    const id = `SRC-${randomUUID().substring(0, 8).toUpperCase()}`;
-    const newSource: WaterSource = { ...source, id };
-    this.waterSources.set(id, newSource);
-    return newSource;
+  async createWaterSource(source: InsertWaterSource): Promise<WaterSource> {
+    const id = `S${Date.now()}`;
+    const result = await db.insert(waterSources).values({
+      id,
+      name: source.name,
+      type: source.type,
+      location: source.location,
+      geoLat: source.geoLocation.lat.toString(),
+      geoLng: source.geoLocation.lng.toString(),
+      capacity: source.capacity.toString(),
+      currentLevel: source.currentLevel.toString(),
+      quality: source.quality,
+      lastTested: source.lastTested,
+      status: source.status,
+    }).returning();
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      type: row.type as any,
+      location: row.location,
+      geoLocation: { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) },
+      capacity: parseFloat(row.capacity),
+      currentLevel: parseFloat(row.currentLevel),
+      quality: row.quality as any,
+      lastTested: row.lastTested || undefined,
+      status: row.status as any,
+    };
   }
 
-  async updateWaterSource(id: string, data: Partial<WaterSource>): Promise<WaterSource> {
-    const source = this.waterSources.get(id);
-    if (!source) throw new Error("Water source not found");
-    const updated = { ...source, ...data };
-    this.waterSources.set(id, updated);
-    return updated;
+  async updateWaterSource(id: string, updates: Partial<WaterSource>): Promise<WaterSource> {
+    const updateData: any = {};
+    if (updates.name) updateData.name = updates.name;
+    if (updates.type) updateData.type = updates.type;
+    if (updates.location) updateData.location = updates.location;
+    if (updates.geoLocation) {
+      updateData.geoLat = updates.geoLocation.lat.toString();
+      updateData.geoLng = updates.geoLocation.lng.toString();
+    }
+    if (updates.capacity !== undefined) updateData.capacity = updates.capacity.toString();
+    if (updates.currentLevel !== undefined) updateData.currentLevel = updates.currentLevel.toString();
+    if (updates.quality) updateData.quality = updates.quality;
+    if (updates.lastTested !== undefined) updateData.lastTested = updates.lastTested;
+    if (updates.status) updateData.status = updates.status;
+
+    const result = await db.update(waterSources).set(updateData).where(eq(waterSources.id, id)).returning();
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      type: row.type as any,
+      location: row.location,
+      geoLocation: { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) },
+      capacity: parseFloat(row.capacity),
+      currentLevel: parseFloat(row.currentLevel),
+      quality: row.quality as any,
+      lastTested: row.lastTested || undefined,
+      status: row.status as any,
+    };
   }
 
   async deleteWaterSource(id: string): Promise<void> {
-    const source = this.waterSources.get(id);
-    if (!source) throw new Error("Water source not found");
-    this.waterSources.delete(id);
+    await db.delete(waterSources).where(eq(waterSources.id, id));
   }
 
+  // Pump methods
   async getPumps(): Promise<Pump[]> {
-    return Array.from(this.pumps.values());
+    const result = await db.select().from(pumps);
+    return result.map(row => ({
+      id: row.id,
+      zoneId: row.zoneId,
+      sourceId: row.sourceId,
+      status: row.status as any,
+      schedule: row.schedule,
+      flowRate: parseFloat(row.flowRate),
+      lastMaintenance: row.lastMaintenance || undefined,
+    }));
   }
 
-  async getPump(id: string): Promise<Pump | undefined> {
-    return this.pumps.get(id);
+  async getPump(id: string): Promise<Pump | null> {
+    const result = await db.select().from(pumps).where(eq(pumps.id, id)).limit(1);
+    if (!result[0]) return null;
+    const row = result[0];
+    return {
+      id: row.id,
+      zoneId: row.zoneId,
+      sourceId: row.sourceId,
+      status: row.status as any,
+      schedule: row.schedule,
+      flowRate: parseFloat(row.flowRate),
+      lastMaintenance: row.lastMaintenance || undefined,
+    };
   }
 
-  async updatePump(id: string, data: Partial<Pump>): Promise<Pump> {
-    const pump = this.pumps.get(id);
-    if (!pump) throw new Error("Pump not found");
-    const updated = { ...pump, ...data };
-    this.pumps.set(id, updated);
-    return updated;
+  async updatePump(id: string, updates: Partial<Pump>): Promise<Pump> {
+    const updateData: any = {};
+    if (updates.status) updateData.status = updates.status;
+    if (updates.schedule) updateData.schedule = updates.schedule;
+    if (updates.flowRate !== undefined) updateData.flowRate = updates.flowRate.toString();
+    if (updates.lastMaintenance !== undefined) updateData.lastMaintenance = updates.lastMaintenance;
+
+    const result = await db.update(pumps).set(updateData).where(eq(pumps.id, id)).returning();
+    const row = result[0];
+    return {
+      id: row.id,
+      zoneId: row.zoneId,
+      sourceId: row.sourceId,
+      status: row.status as any,
+      schedule: row.schedule,
+      flowRate: parseFloat(row.flowRate),
+      lastMaintenance: row.lastMaintenance || undefined,
+    };
   }
 
+  // Alert methods
   async getAlerts(): Promise<Alert[]> {
-    return Array.from(this.alerts.values()).filter(a => !a.resolved);
+    const result = await db.select().from(alerts).orderBy(desc(alerts.timestamp));
+    return result.map(row => ({
+      id: row.id!,
+      type: row.type as any,
+      zoneId: row.zoneId,
+      severity: row.severity as any,
+      message: row.message,
+      timestamp: row.timestamp!,
+      resolved: row.resolved!,
+    }));
   }
 
-  async createAlert(alert: Omit<Alert, 'id'>): Promise<Alert> {
-    const id = randomUUID();
-    const newAlert: Alert = { ...alert, id };
-    this.alerts.set(id, newAlert);
-    return newAlert;
+  async createAlert(alert: Omit<Alert, 'id' | 'timestamp' | 'resolved'>): Promise<Alert> {
+    const result = await db.insert(alerts).values({
+      type: alert.type,
+      zoneId: alert.zoneId,
+      severity: alert.severity,
+      message: alert.message,
+    }).returning();
+    return {
+      id: result[0].id!,
+      type: result[0].type as any,
+      zoneId: result[0].zoneId,
+      severity: result[0].severity as any,
+      message: result[0].message,
+      timestamp: result[0].timestamp!,
+      resolved: result[0].resolved!,
+    };
   }
 
   async resolveAlert(id: string): Promise<void> {
-    const alert = this.alerts.get(id);
-    if (alert) {
-      alert.resolved = true;
-      this.alerts.set(id, alert);
-    }
+    await db.update(alerts).set({ resolved: true }).where(eq(alerts.id, id));
   }
 
+  // Citizen Report methods
   async getReports(): Promise<CitizenReport[]> {
-    return Array.from(this.reports.values()).sort((a, b) => 
-      b.timestamp.getTime() - a.timestamp.getTime()
-    );
+    const result = await db.select().from(citizenReports).orderBy(desc(citizenReports.timestamp));
+    return result.map(row => ({
+      id: row.id!,
+      type: row.type,
+      location: row.location,
+      geoLocation: row.geoLat && row.geoLng ? { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) } : undefined,
+      description: row.description,
+      contact: row.contact,
+      status: row.status as any,
+      timestamp: row.timestamp!,
+      images: (row.images as string[]) || undefined,
+      reportHash: row.reportHash,
+      previousHash: row.previousHash,
+      blockNumber: row.blockNumber,
+      signature: row.signature,
+      statusHistory: row.statusHistory as any,
+    }));
   }
 
-  async createReport(report: Omit<CitizenReport, 'id' | 'timestamp' | 'reportHash' | 'previousHash' | 'blockNumber' | 'signature' | 'statusHistory'>): Promise<CitizenReport> {
-    try {
-      const id = randomUUID(); // Use randomUUID for IDs
-      const timestamp = new Date();
+  async createReport(report: InsertCitizenReport): Promise<CitizenReport> {
+    const reports = await this.getReports();
+    const previousHash = reports.length > 0 ? reports[0].reportHash : '0';
+    const blockNumber = reports.length;
 
-      // Get all reports to determine block number and previous hash
-      const allReports = Array.from(this.reports.values())
-        .sort((a, b) => a.blockNumber - b.blockNumber);
+    const reportData = {
+      ...report,
+      status: 'pending' as const,
+      timestamp: new Date(),
+      previousHash,
+      blockNumber,
+    };
 
-      const blockNumber = allReports.length;
-      const previousHash = allReports.length > 0 
-        ? allReports[allReports.length - 1].reportHash 
-        : '0'; // Genesis block
+    const block = this.blockchain.addBlock(reportData);
 
-      // Create preliminary report for hashing
-      const preliminaryReport = {
-        id,
-        type: report.type || "Other",
-        location: report.location || "Unknown",
-        geoLocation: report.geoLocation || { lat: 21.25, lng: 81.63 }, // Default location if not provided
-        description: report.description || "",
-        contact: report.contact || "",
-        status: 'pending' as const,
-        timestamp,
-        images: report.images,
-        previousHash,
-        blockNumber,
-      };
+    const result = await db.insert(citizenReports).values({
+      type: report.type,
+      location: report.location,
+      geoLat: report.geoLocation?.lat.toString(),
+      geoLng: report.geoLocation?.lng.toString(),
+      description: report.description,
+      contact: report.contact,
+      status: 'pending',
+      images: report.images as any,
+      reportHash: block.hash,
+      previousHash: block.previousHash,
+      blockNumber: block.index,
+      signature: block.signature,
+      statusHistory: [{
+        status: 'pending',
+        timestamp: new Date(),
+        updatedBy: 'system',
+      }] as any,
+    }).returning();
 
-      // Generate hash and signature
-      const reportHash = this.generateReportHash(preliminaryReport);
-      const signature = this.generateSignature(reportHash, timestamp);
-
-      const newReport: CitizenReport = { 
-        ...preliminaryReport,
-        reportHash,
-        signature,
-        statusHistory: [{
-          status: 'pending',
-          timestamp,
-          updatedBy: 'citizen',
-        }],
-      };
-
-      this.reports.set(id, newReport);
-      console.log(`📦 Block #${blockNumber} created: ${reportHash.substring(0, 16)}...`);
-      return newReport;
-    } catch (error) {
-      console.error("Error creating report:", error);
-      throw new Error("Failed to create report");
-    }
+    const row = result[0];
+    return {
+      id: row.id!,
+      type: row.type,
+      location: row.location,
+      geoLocation: row.geoLat && row.geoLng ? { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) } : undefined,
+      description: row.description,
+      contact: row.contact,
+      status: row.status as any,
+      timestamp: row.timestamp!,
+      images: (row.images as string[]) || undefined,
+      reportHash: row.reportHash,
+      previousHash: row.previousHash,
+      blockNumber: row.blockNumber,
+      signature: row.signature,
+      statusHistory: row.statusHistory as any,
+    };
   }
 
-  private generateReportHash(data: any): string {
-    const content = JSON.stringify({
-      id: data.id,
-      type: data.type,
-      location: data.location,
-      description: data.description,
-      timestamp: data.timestamp.toISOString(),
-      status: data.status,
-      previousHash: data.previousHash || '0',
-      geoLocation: data.geoLocation
-    });
-    return createHash('sha256').update(content).digest('hex');
-  }
+  async updateReportStatus(id: string, status: string, updatedBy: string, reason?: string): Promise<CitizenReport> {
+    const currentReport = await db.select().from(citizenReports).where(eq(citizenReports.id, id)).limit(1);
+    if (!currentReport[0]) throw new Error('Report not found');
 
-  private generateSignature(reportHash: string, timestamp: Date): string {
-    const data = `${reportHash}:${timestamp.toISOString()}`;
-    return createHash('sha256').update(data).digest('hex');
-  }
-
-  async updateReportStatus(id: string, status: CitizenReport['status'], updatedBy: string = 'admin', reason?: string): Promise<CitizenReport> {
-    const report = this.reports.get(id);
-    if (!report) throw new Error("Report not found");
-
-    // Add to immutable status history (never delete, only append)
-    report.statusHistory.push({
+    const statusHistory = currentReport[0].statusHistory as any[];
+    statusHistory.push({
       status,
       timestamp: new Date(),
       updatedBy,
       reason,
     });
 
-    report.status = status;
-    this.reports.set(id, report);
-
-    console.log(`🔗 Report ${id} status updated: ${status} (immutable record preserved)`);
-    return report;
-  }
-
-  // Historical Data Methods
-  async getZoneHistory(zoneId: string, hours: number = 24): Promise<ZoneHistoricalData[]> {
-    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-    return Array.from(this.zoneHistory.values())
-      .filter(h => h.zoneId === zoneId && h.timestamp >= cutoff)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-  }
-
-  async recordZoneData(zoneId: string, flowRate: number, pressure: number): Promise<void> {
-    const now = new Date();
-    const id = randomUUID();
-    const record: ZoneHistoricalData = {
-      id,
-      zoneId,
-      flowRate,
-      pressure,
-      timestamp: now,
-      hour: now.getHours(),
-      dayOfWeek: now.getDay()
-    };
-    this.zoneHistory.set(id, record);
-  }
-
-  async getReservoirHistory(sourceId: string, hours: number = 24): Promise<ReservoirHistory[]> {
-    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-    return Array.from(this.reservoirHistory.values())
-      .filter(h => h.sourceId === sourceId && h.timestamp >= cutoff)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-  }
-
-  async recordReservoirData(sourceId: string, level: number): Promise<void> {
-    const id = randomUUID();
-    const record: ReservoirHistory = {
-      id,
-      sourceId,
-      level,
-      timestamp: new Date()
-    };
-    this.reservoirHistory.set(id, record);
-  }
-
-  async getPumpHistory(pumpId: string, hours: number = 24): Promise<PumpHistory[]> {
-    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-    return Array.from(this.pumpHistory.values())
-      .filter(h => h.pumpId === pumpId && h.timestamp >= cutoff)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-  }
-
-  async recordPumpData(pumpId: string, status: Pump['status'], flowRate: number, duration: number): Promise<void> {
-    const id = randomUUID();
-    const record: PumpHistory = {
-      id,
-      pumpId,
+    const result = await db.update(citizenReports).set({
       status,
-      flowRate,
-      timestamp: new Date(),
-      duration
+      statusHistory: statusHistory as any,
+    }).where(eq(citizenReports.id, id)).returning();
+
+    const row = result[0];
+    return {
+      id: row.id!,
+      type: row.type,
+      location: row.location,
+      geoLocation: row.geoLat && row.geoLng ? { lat: parseFloat(row.geoLat), lng: parseFloat(row.geoLng) } : undefined,
+      description: row.description,
+      contact: row.contact,
+      status: row.status as any,
+      timestamp: row.timestamp!,
+      images: (row.images as string[]) || undefined,
+      reportHash: row.reportHash,
+      previousHash: row.previousHash,
+      blockNumber: row.blockNumber,
+      signature: row.signature,
+      statusHistory: row.statusHistory as any,
     };
-    this.pumpHistory.set(id, record);
   }
 
-  async getAggregatedZoneData(hours: number = 168): Promise<Map<string, ZoneHistoricalData[]>> {
-    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-    const aggregated = new Map<string, ZoneHistoricalData[]>();
-
-    for (const record of Array.from(this.zoneHistory.values())) {
-      if (record.timestamp >= cutoff) {
-        const existing = aggregated.get(record.zoneId) || [];
-        existing.push(record);
-        aggregated.set(record.zoneId, existing);
-      }
-    }
-
-    return aggregated;
-  }
-
-  // Blockchain verification methods
-  async verifyReportChain(): Promise<{ valid: boolean; invalidBlock?: number; totalBlocks: number }> {
-    const allReports = Array.from(this.reports.values())
-      .sort((a, b) => a.blockNumber - b.blockNumber);
-
-    for (let i = 0; i < allReports.length; i++) {
-      const report = allReports[i];
-
-      // Verify hash integrity
-      const calculatedHash = this.generateReportHash(report);
-      if (calculatedHash !== report.reportHash) {
-        return { valid: false, invalidBlock: report.blockNumber, totalBlocks: allReports.length };
-      }
-
-      // Verify chain link (except genesis block)
-      if (i > 0) {
-        const previousReport = allReports[i - 1];
-        if (report.previousHash !== previousReport.reportHash) {
-          return { valid: false, invalidBlock: report.blockNumber, totalBlocks: allReports.length };
-        }
-      }
-    }
-
-    return { valid: true, totalBlocks: allReports.length };
+  async verifyReportChain(): Promise<{ isValid: boolean; invalidBlocks: number[] }> {
+    const reports = await this.getReports();
+    return this.blockchain.verifyChain(reports.reverse());
   }
 
   async getBlockchainStats(): Promise<any> {
-    const reports = Array.from(this.reports.values())
-      .sort((a, b) => a.blockNumber - b.blockNumber);
-
-    const verification = await this.verifyReportChain();
-
-    return {
-      totalBlocks: reports.length,
-      isValid: verification.valid,
-      invalidBlock: verification.invalidBlock,
-      genesisBlock: reports.length > 0 ? {
-        number: reports[0].blockNumber,
-        hash: reports[0].reportHash,
-        timestamp: reports[0].timestamp,
-      } : null,
-      latestBlock: reports.length > 0 ? {
-        number: reports[reports.length - 1].blockNumber,
-        hash: reports[reports.length - 1].reportHash,
-        timestamp: reports[reports.length - 1].timestamp,
-      } : null,
-    };
+    const reports = await this.getReports();
+    return this.blockchain.getStats(reports.reverse());
   }
 
-  private startHistoricalDataCollection() {
-    // Generate historical data for the past 7 days
-    this.generateHistoricalData();
-
-    // Record current data every 15 minutes
-    setInterval(() => {
-      this.recordCurrentState();
-    }, 15 * 60 * 1000);
+  // Historical Data methods
+  async getZoneHistory(zoneId: string, hours: number): Promise<ZoneHistoricalData[]> {
+    const cutoffTime = new Date(Date.now() - hours * 3600000);
+    const result = await db.select().from(zoneHistory)
+      .where(and(eq(zoneHistory.zoneId, zoneId), gte(zoneHistory.timestamp, cutoffTime)))
+      .orderBy(desc(zoneHistory.timestamp));
+    
+    return result.map(row => ({
+      id: row.id!,
+      zoneId: row.zoneId,
+      flowRate: parseFloat(row.flowRate),
+      pressure: parseFloat(row.pressure),
+      timestamp: row.timestamp!,
+      hour: row.hour,
+      dayOfWeek: row.dayOfWeek,
+    }));
   }
 
-  private generateHistoricalData() {
-    const now = new Date();
-    const zones = Array.from(this.zones.values());
-    const sources = Array.from(this.waterSources.values());
-    const pumps = Array.from(this.pumps.values());
-
-    // Generate 7 days of historical data
-    for (let day = 7; day >= 0; day--) {
-      for (let hour = 0; hour < 24; hour++) {
-        for (let minute = 0; minute < 60; minute += 15) {
-          const timestamp = new Date(now.getTime() - (day * 24 * 60 * 60 * 1000) - ((23 - hour) * 60 * 60 * 1000) - ((60 - minute) * 60 * 1000));
-
-          // Record zone data with patterns (higher demand morning 6-9 and evening 18-21)
-          zones.forEach(zone => {
-            const baseFlow = zone.flowRate;
-            const basePressure = zone.pressure;
-            const isPeakHour = (hour >= 6 && hour <= 9) || (hour >= 18 && hour <= 21);
-            const variation = Math.random() * 0.2 - 0.1; // ±10% variation
-
-            const flowRate = baseFlow * (isPeakHour ? 1.3 : 0.7) * (1 + variation);
-            const pressure = basePressure * (isPeakHour ? 0.9 : 1.1) * (1 + variation);
-
-            const id = randomUUID();
-            this.zoneHistory.set(id, {
-              id,
-              zoneId: zone.id,
-              flowRate,
-              pressure,
-              timestamp,
-              hour: timestamp.getHours(),
-              dayOfWeek: timestamp.getDay()
-            });
-          });
-
-          // Record reservoir levels (gradually decreasing during peak hours)
-          sources.forEach(source => {
-            const baseLevel = source.currentLevel;
-            const isPeakHour = (hour >= 6 && hour <= 9) || (hour >= 18 && hour <= 21);
-            const level = baseLevel + (Math.random() * 10 - 5) - (isPeakHour ? 2 : -1);
-
-            const id = randomUUID();
-            this.reservoirHistory.set(id, {
-              id,
-              sourceId: source.id,
-              level: Math.max(0, Math.min(100, level)),
-              timestamp
-            });
-          });
-
-          // Record pump activity
-          pumps.forEach(pump => {
-            const id = randomUUID();
-            this.pumpHistory.set(id, {
-              id,
-              pumpId: pump.id,
-              status: pump.status,
-              flowRate: pump.flowRate * (Math.random() * 0.2 + 0.9),
-              timestamp,
-              duration: 15
-            });
-          });
-        }
+  async getAggregatedZoneData(hours: number): Promise<Map<string, ZoneHistoricalData[]>> {
+    const cutoffTime = new Date(Date.now() - hours * 3600000);
+    const result = await db.select().from(zoneHistory)
+      .where(gte(zoneHistory.timestamp, cutoffTime))
+      .orderBy(desc(zoneHistory.timestamp));
+    
+    const dataMap = new Map<string, ZoneHistoricalData[]>();
+    result.forEach(row => {
+      const data: ZoneHistoricalData = {
+        id: row.id!,
+        zoneId: row.zoneId,
+        flowRate: parseFloat(row.flowRate),
+        pressure: parseFloat(row.pressure),
+        timestamp: row.timestamp!,
+        hour: row.hour,
+        dayOfWeek: row.dayOfWeek,
+      };
+      if (!dataMap.has(row.zoneId)) {
+        dataMap.set(row.zoneId, []);
       }
-    }
+      dataMap.get(row.zoneId)!.push(data);
+    });
+    
+    return dataMap;
   }
 
-  private recordCurrentState() {
-    const zones = Array.from(this.zones.values());
-    const sources = Array.from(this.waterSources.values());
-    const pumps = Array.from(this.pumps.values());
+  async getReservoirHistory(sourceId: string, hours: number): Promise<ReservoirHistory[]> {
+    const cutoffTime = new Date(Date.now() - hours * 3600000);
+    const result = await db.select().from(reservoirHistory)
+      .where(and(eq(reservoirHistory.sourceId, sourceId), gte(reservoirHistory.timestamp, cutoffTime)))
+      .orderBy(desc(reservoirHistory.timestamp));
+    
+    return result.map(row => ({
+      id: row.id!,
+      sourceId: row.sourceId,
+      level: parseFloat(row.level),
+      timestamp: row.timestamp!,
+    }));
+  }
 
-    zones.forEach(zone => {
-      this.recordZoneData(zone.id, zone.flowRate, zone.pressure);
-    });
-
-    sources.forEach(source => {
-      this.recordReservoirData(source.id, source.currentLevel);
-    });
-
-    pumps.forEach(pump => {
-      this.recordPumpData(pump.id, pump.status, pump.flowRate, 15);
-    });
+  async getPumpHistory(pumpId: string, hours: number): Promise<PumpHistory[]> {
+    const cutoffTime = new Date(Date.now() - hours * 3600000);
+    const result = await db.select().from(pumpHistory)
+      .where(and(eq(pumpHistory.pumpId, pumpId), gte(pumpHistory.timestamp, cutoffTime)))
+      .orderBy(desc(pumpHistory.timestamp));
+    
+    return result.map(row => ({
+      id: row.id!,
+      pumpId: row.pumpId,
+      status: row.status as any,
+      flowRate: parseFloat(row.flowRate),
+      timestamp: row.timestamp!,
+      duration: row.duration,
+    }));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();
