@@ -1,4 +1,3 @@
-
 import { storage } from './storage';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
@@ -23,7 +22,7 @@ async function seedHistoricalData() {
 
   try {
     const zones = await storage.getZones();
-    
+
     if (zones.length === 0) {
       console.log('❌ No zones found. Please run seed-zones.ts first.');
       process.exit(1);
@@ -35,15 +34,15 @@ async function seedHistoricalData() {
 
     for (const zone of zones) {
       console.log(`  Processing ${zone.name}...`);
-      
+
       for (let i = 0; i < 96; i++) {
-        const timestamp = new Date(now.getTime() - (i * 15 * 60 * 1000)); // 15 minutes intervals
-        const hour = timestamp.getHours();
-        const dayOfWeek = timestamp.getDay();
-        
+        const currentTime = new Date(now.getTime() - (i * 15 * 60 * 1000)); // 15 minutes intervals
+        const hour = currentTime.getHours();
+        const dayOfWeek = currentTime.getDay();
+
         // Calculate flow rate based on time of day patterns
         let flowMultiplier = 1.0;
-        
+
         // Night (10 PM - 5 AM) - very low consumption (sleeping hours)
         if (hour >= 22 || hour < 5) {
           flowMultiplier = 0.3 + (Math.random() * 0.15);
@@ -76,34 +75,32 @@ async function seedHistoricalData() {
         else {
           flowMultiplier = 0.6 + (Math.random() * 0.2);
         }
-        
+
         // Weekend adjustment (slightly lower)
         if (dayOfWeek === 0 || dayOfWeek === 6) {
           flowMultiplier *= 0.9;
         }
-        
+
         // Calculate pressure (inversely proportional to flow rate)
         const baseFlowRate = zone.flowRate * flowMultiplier;
         const basePressure = zone.pressure - (flowMultiplier - 1) * 15;
-        
+
         // Add some random variance
         const flowRate = baseFlowRate * (0.95 + Math.random() * 0.1);
         const pressure = basePressure * (0.95 + Math.random() * 0.1);
-        
+
         dataPoints.push({
           zoneId: zone.id,
           flowRate: flowRate.toString(),
           pressure: Math.max(35, pressure).toString(), // Minimum 35 PSI
-          timestamp: timestamp,
-          hour: hour,
-          dayOfWeek: dayOfWeek,
+          timestamp: currentTime,
         });
       }
     }
 
     // Insert all data points
     console.log(`  Inserting ${dataPoints.length} historical data points...`);
-    
+
     // Batch insert in chunks of 100
     for (let i = 0; i < dataPoints.length; i += 100) {
       const chunk = dataPoints.slice(i, i + 100);
@@ -114,7 +111,7 @@ async function seedHistoricalData() {
     console.log(`  Total data points: ${dataPoints.length}`);
     console.log(`  Zones covered: ${zones.length}`);
     console.log(`  Time range: Last 24 hours (15-minute intervals)`);
-    
+
     // Show sample data for verification
     console.log('\n📈 Sample data points:');
     for (const zone of zones.slice(0, 2)) {
@@ -124,7 +121,7 @@ async function seedHistoricalData() {
         console.log(`    ${idx + 1}. Flow: ${Math.round(parseFloat(d.flowRate))} L/h, Pressure: ${Math.round(parseFloat(d.pressure))} PSI at ${d.timestamp.toLocaleTimeString()}`);
       });
     }
-    
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Error seeding historical data:', error);

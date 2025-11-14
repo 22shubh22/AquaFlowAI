@@ -115,8 +115,6 @@ const zoneHistory = pgTable("zone_history", {
   flowRate: numeric("flow_rate").notNull(),
   pressure: numeric("pressure").notNull(),
   timestamp: timestamp("timestamp").defaultNow(),
-  hour: integer("hour").notNull(),
-  dayOfWeek: integer("day_of_week").notNull(),
 });
 
 const reservoirHistory = pgTable("reservoir_history", {
@@ -698,8 +696,6 @@ class DbStorage {
       flowRate: parseFloat(row.flowRate),
       pressure: parseFloat(row.pressure),
       timestamp: row.timestamp!,
-      hour: row.hour,
-      dayOfWeek: row.dayOfWeek,
     }));
   }
 
@@ -717,8 +713,6 @@ class DbStorage {
         flowRate: parseFloat(row.flowRate),
         pressure: parseFloat(row.pressure),
         timestamp: row.timestamp!,
-        hour: row.hour,
-        dayOfWeek: row.dayOfWeek,
       };
       if (!dataMap.has(row.zoneId)) {
         dataMap.set(row.zoneId, []);
@@ -788,8 +782,6 @@ class DbStorage {
         flowRate: record.flowRate.toString(),
         pressure: record.pressure.toString(),
         timestamp,
-        hour: timestamp.getHours(),
-        dayOfWeek: timestamp.getDay(),
       };
     });
 

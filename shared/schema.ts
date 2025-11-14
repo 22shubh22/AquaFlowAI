@@ -218,8 +218,6 @@ export interface ZoneHistoricalData {
   flowRate: number;
   pressure: number;
   timestamp: Date;
-  hour: number;
-  dayOfWeek: number;
 }
 
 export interface ReservoirHistory {

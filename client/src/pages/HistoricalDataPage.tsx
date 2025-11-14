@@ -176,13 +176,11 @@ export default function HistoricalDataPage() {
   const exportToCSV = () => {
     if (!historicalData || historicalData.length === 0) return;
 
-    const headers = ["Timestamp", "Flow Rate (L/h)", "Pressure (PSI)", "Hour", "Day of Week"];
+    const headers = ["Timestamp", "Flow Rate (L/h)", "Pressure (PSI)"];
     const rows = historicalData.map((record: any) => [
       new Date(record.timestamp).toISOString(),
       record.flowRate,
-      record.pressure,
-      record.hour,
-      record.dayOfWeek
+      record.pressure
     ]);
 
     const csv = [
@@ -268,8 +266,6 @@ export default function HistoricalDataPage() {
                           <TableHead>Timestamp</TableHead>
                           <TableHead>Flow Rate (L/h)</TableHead>
                           <TableHead>Pressure (PSI)</TableHead>
-                          <TableHead>Hour</TableHead>
-                          <TableHead>Day of Week</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -280,10 +276,6 @@ export default function HistoricalDataPage() {
                             </TableCell>
                             <TableCell>{Math.round(record.flowRate)}</TableCell>
                             <TableCell>{Math.round(record.pressure)}</TableCell>
-                            <TableCell>{record.hour}</TableCell>
-                            <TableCell>
-                              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][record.dayOfWeek]}
-                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
