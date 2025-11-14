@@ -5,7 +5,7 @@ import { Droplets, Clock, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { useAuth } from "@/hooks/use-auth"; // Assuming useAuth provides user object with id
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function CitizenPortal() {
   const { toast } = useToast();
