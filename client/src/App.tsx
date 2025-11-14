@@ -21,7 +21,7 @@ import CitizenPortal from "@/pages/CitizenPortal";
 import BlockchainVerificationPage from "@/pages/BlockchainVerificationPage";
 import CitizenUsersPage from "@/pages/CitizenUsersPage";
 import HistoricalDataPage from "@/pages/HistoricalDataPage";
-import { NotFound } from "@/pages/not-found";
+import NotFound from "@/pages/not-found";
 import { PipelineMonitor } from "@/components/PipelineMonitor";
 
 function Router() {

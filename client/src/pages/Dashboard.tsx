@@ -107,7 +107,7 @@ export default function Dashboard() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [metrics.totalFlow, metrics.avgPressure]);
+  }, [metrics.totalConsumption, metrics.avgPressure]); // Corrected dependency array
 
   // Pipeline pressure distribution
   const pressureDistribution = zones ? zones.reduce((acc: any, zone: any) => {
@@ -480,7 +480,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle>{zone.name}</CardTitle>
-                        <CardDescription>Population: {(zone.population || 50000).toLocaleString()}</CardDescription>
+                        <CardDescription>Population: {(zone.population?.toLocaleString() || 'N/A')}</CardDescription>
                       </div>
                       <Badge variant={
                         zone.status === 'optimal' ? 'default' :
