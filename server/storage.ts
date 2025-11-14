@@ -1,5 +1,5 @@
 import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -448,24 +448,22 @@ export class MemStorage implements IStorage {
   }
 
   private generateReportHash(data: any): string {
-    const crypto = require('crypto');
     const content = JSON.stringify({
       id: data.id,
       type: data.type,
       location: data.location,
       description: data.description,
-      timestamp: data.timestamp.toISOString(), // Ensure timestamp is stringified
+      timestamp: data.timestamp.toISOString(),
       status: data.status,
       previousHash: data.previousHash || '0',
-      geoLocation: data.geoLocation // Include geoLocation in hash
+      geoLocation: data.geoLocation
     });
-    return crypto.createHash('sha256').update(content).digest('hex');
+    return createHash('sha256').update(content).digest('hex');
   }
 
   private generateSignature(reportHash: string, timestamp: Date): string {
-    const crypto = require('crypto');
-    const data = `${reportHash}:${timestamp.toISOString()}`; // Ensure timestamp is stringified
-    return crypto.createHash('sha256').update(data).digest('hex');
+    const data = `${reportHash}:${timestamp.toISOString()}`;
+    return createHash('sha256').update(data).digest('hex');
   }
 
   async updateReportStatus(id: string, status: CitizenReport['status'], updatedBy: string = 'admin', reason?: string): Promise<CitizenReport> {
