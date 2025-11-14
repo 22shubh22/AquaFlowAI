@@ -1,4 +1,3 @@
-
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { ReportBlockchain } from './blockchain';
@@ -28,22 +27,22 @@ const citizenReports = pgTable("citizen_reports", {
 
 async function diagnoseAndFix() {
   console.log('🔍 Diagnosing blockchain...\n');
-  
+
   const reports = await db.select().from(citizenReports);
   const sortedReports = reports.sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
-  
+
   console.log(`Found ${reports.length} reports\n`);
-  
+
   for (const report of sortedReports) {
     console.log(`Block #${report.blockNumber}:`);
     console.log(`  ID: ${report.id}`);
     console.log(`  Stored hash: ${report.reportHash}`);
-    
+
     // Recalculate hash
     const calculatedHash = ReportBlockchain.generateHash(report);
     console.log(`  Calculated hash: ${calculatedHash}`);
     console.log(`  Match: ${calculatedHash === report.reportHash ? '✅' : '❌'}`);
-    
+
     if (report.blockNumber && report.blockNumber > 0) {
       const expectedPrevious = sortedReports[report.blockNumber - 1]?.reportHash;
       console.log(`  Previous hash: ${report.previousHash}`);
@@ -52,7 +51,7 @@ async function diagnoseAndFix() {
     }
     console.log('');
   }
-  
+
   const verification = ReportBlockchain.verifyChain(sortedReports);
   console.log(`\n📊 Chain verification: ${verification.valid ? '✅ VALID' : '❌ INVALID'}`);
   if (!verification.valid) {
@@ -66,26 +65,26 @@ async function diagnoseAndFix() {
 
 async function fixBlockchain() {
   console.log('🔧 Fixing blockchain...\n');
-  
+
   const reports = await db.select().from(citizenReports);
   const sortedReports = reports.sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
-  
+
   let previousHash = '0';
-  
+
   for (const report of sortedReports) {
     // Recalculate hash
     const newHash = ReportBlockchain.generateHash({
       ...report,
       previousHash,
     });
-    
+
     // Recalculate signature
     const newSignature = ReportBlockchain.generateSignature(newHash, report.timestamp);
-    
+
     console.log(`Updating Block #${report.blockNumber} (${report.id})`);
     console.log(`  Old hash: ${report.reportHash}`);
     console.log(`  New hash: ${newHash}`);
-    
+
     // Update the database
     await db
       .update(citizenReports)
@@ -95,12 +94,12 @@ async function fixBlockchain() {
         signature: newSignature,
       })
       .where(eq(citizenReports.id, report.id));
-    
+
     previousHash = newHash;
   }
-  
+
   console.log('\n✅ Blockchain fixed! All hashes recalculated.\n');
-  
+
   // Verify
   const updatedReports = await db.select().from(citizenReports);
   const verification = ReportBlockchain.verifyChain(updatedReports);
