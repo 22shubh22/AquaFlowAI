@@ -74,9 +74,15 @@ async function seedWaterSources() {
   console.log('🌊 Seeding water sources...');
   
   try {
+    let sourceId = 1;
     for (const source of waterSources) {
-      await storage.createWaterSource(source);
-      console.log(`✅ Created: ${source.name}`);
+      const sourceWithId = {
+        ...source,
+        id: `source-${sourceId}`,
+      };
+      await storage.createWaterSource(sourceWithId);
+      console.log(`✅ Created: ${source.name} (ID: source-${sourceId})`);
+      sourceId++;
     }
     
     console.log('\n🎉 Successfully seeded all water sources!');
