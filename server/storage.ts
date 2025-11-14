@@ -94,7 +94,9 @@ export interface IStorage {
   // Zones
   getZones(): Promise<Zone[]>;
   getZone(id: string): Promise<Zone | undefined>;
+  createZone(zone: Omit<Zone, 'id' | 'lastUpdated'>): Promise<Zone>;
   updateZone(id: string, data: Partial<Zone>): Promise<Zone>;
+  deleteZone(id: string): Promise<void>;
 
   // Water Sources
   getWaterSources(): Promise<WaterSource[]>;
@@ -252,12 +254,30 @@ export class MemStorage implements IStorage {
     return this.zones.get(id);
   }
 
+  async createZone(zone: Omit<Zone, 'id' | 'lastUpdated'>): Promise<Zone> {
+    const zoneCount = this.zones.size + 1;
+    const id = `RAI-${zoneCount}`;
+    const newZone: Zone = { 
+      ...zone, 
+      id,
+      lastUpdated: new Date() 
+    };
+    this.zones.set(id, newZone);
+    return newZone;
+  }
+
   async updateZone(id: string, data: Partial<Zone>): Promise<Zone> {
     const zone = this.zones.get(id);
     if (!zone) throw new Error("Zone not found");
     const updated = { ...zone, ...data, lastUpdated: new Date() };
     this.zones.set(id, updated);
     return updated;
+  }
+
+  async deleteZone(id: string): Promise<void> {
+    const zone = this.zones.get(id);
+    if (!zone) throw new Error("Zone not found");
+    this.zones.delete(id);
   }
 
   async getWaterSources(): Promise<WaterSource[]> {

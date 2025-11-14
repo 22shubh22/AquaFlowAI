@@ -43,6 +43,15 @@ export const api = {
     return res.json();
   },
 
+  createZone: async (zone: any) => {
+    const res = await fetch(`${API_BASE}/zones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(zone)
+    });
+    return res.json();
+  },
+
   updateZone: async (id: string, data: any) => {
     const res = await fetch(`${API_BASE}/zones/${id}`, {
       method: 'PATCH',
@@ -50,6 +59,12 @@ export const api = {
       body: JSON.stringify(data)
     });
     return res.json();
+  },
+
+  deleteZone: async (id: string) => {
+    await fetch(`${API_BASE}/zones/${id}`, {
+      method: 'DELETE'
+    });
   },
 
   // Pumps

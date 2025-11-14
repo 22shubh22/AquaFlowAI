@@ -76,10 +76,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(zone);
   });
 
+  app.post("/api/zones", async (req, res) => {
+    try {
+      const newZone = await storage.createZone(req.body);
+      res.status(201).json(newZone);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create zone" });
+    }
+  });
+
   app.patch("/api/zones/:id", async (req, res) => {
     try {
       const updated = await storage.updateZone(req.params.id, req.body);
       res.json(updated);
+    } catch (error) {
+      res.status(404).json({ error: "Zone not found" });
+    }
+  });
+
+  app.delete("/api/zones/:id", async (req, res) => {
+    try {
+      await storage.deleteZone(req.params.id);
+      res.status(204).send();
     } catch (error) {
       res.status(404).json({ error: "Zone not found" });
     }
