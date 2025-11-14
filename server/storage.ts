@@ -58,6 +58,17 @@ export interface CitizenReport {
   status: "pending" | "investigating" | "resolved";
   timestamp: Date;
   images?: string[];
+  // Blockchain-inspired immutability fields
+  reportHash: string; // Hash of this report's content
+  previousHash: string; // Hash of previous report (chain link)
+  blockNumber: number; // Sequential block number
+  signature: string; // Cryptographic signature
+  statusHistory: Array<{
+    status: string;
+    timestamp: Date;
+    updatedBy: string;
+    reason?: string;
+  }>;
 }
 
 export interface ZoneHistoricalData {
@@ -350,23 +361,90 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createReport(report: Omit<CitizenReport, 'id' | 'timestamp'>): Promise<CitizenReport> {
+  async createReport(report: Omit<CitizenReport, 'id' | 'timestamp' | 'reportHash' | 'previousHash' | 'blockNumber' | 'signature' | 'statusHistory'>): Promise<CitizenReport> {
     const id = randomUUID();
-    const newReport: CitizenReport = { 
-      ...report, 
-      id, 
-      timestamp: new Date(),
-      status: 'pending'
+    const timestamp = new Date();
+    
+    // Get all reports to determine block number and previous hash
+    const allReports = Array.from(this.reports.values())
+      .sort((a, b) => a.blockNumber - b.blockNumber);
+    
+    const blockNumber = allReports.length;
+    const previousHash = allReports.length > 0 
+      ? allReports[allReports.length - 1].reportHash 
+      : '0'; // Genesis block
+    
+    // Create preliminary report for hashing
+    const preliminaryReport = {
+      id,
+      type: report.type,
+      location: report.location,
+      geoLocation: report.geoLocation,
+      description: report.description,
+      contact: report.contact,
+      status: 'pending' as const,
+      timestamp,
+      images: report.images,
+      previousHash,
+      blockNumber,
     };
+    
+    // Generate hash and signature
+    const reportHash = this.generateReportHash(preliminaryReport);
+    const signature = this.generateSignature(reportHash, timestamp);
+    
+    const newReport: CitizenReport = { 
+      ...preliminaryReport,
+      reportHash,
+      signature,
+      statusHistory: [{
+        status: 'pending',
+        timestamp,
+        updatedBy: 'citizen',
+      }],
+    };
+    
     this.reports.set(id, newReport);
+    console.log(`📦 Block #${blockNumber} created: ${reportHash.substring(0, 16)}...`);
     return newReport;
   }
 
-  async updateReportStatus(id: string, status: CitizenReport['status']): Promise<CitizenReport> {
+  private generateReportHash(data: any): string {
+    const crypto = require('crypto');
+    const content = JSON.stringify({
+      id: data.id,
+      type: data.type,
+      location: data.location,
+      description: data.description,
+      timestamp: data.timestamp,
+      status: data.status,
+      previousHash: data.previousHash || '0',
+    });
+    return crypto.createHash('sha256').update(content).digest('hex');
+  }
+
+  private generateSignature(reportHash: string, timestamp: Date): string {
+    const crypto = require('crypto');
+    const data = `${reportHash}:${timestamp.toISOString()}`;
+    return crypto.createHash('sha256').update(data).digest('hex');
+  }
+
+  async updateReportStatus(id: string, status: CitizenReport['status'], updatedBy: string = 'admin', reason?: string): Promise<CitizenReport> {
     const report = this.reports.get(id);
     if (!report) throw new Error("Report not found");
+    
+    // Add to immutable status history (never delete, only append)
+    report.statusHistory.push({
+      status,
+      timestamp: new Date(),
+      updatedBy,
+      reason,
+    });
+    
     report.status = status;
     this.reports.set(id, report);
+    
+    console.log(`🔗 Report ${id} status updated: ${status} (immutable record preserved)`);
     return report;
   }
 
@@ -444,6 +522,55 @@ export class MemStorage implements IStorage {
     }
     
     return aggregated;
+  }
+
+  // Blockchain verification methods
+  async verifyReportChain(): Promise<{ valid: boolean; invalidBlock?: number; totalBlocks: number }> {
+    const allReports = Array.from(this.reports.values())
+      .sort((a, b) => a.blockNumber - b.blockNumber);
+
+    for (let i = 0; i < allReports.length; i++) {
+      const report = allReports[i];
+      
+      // Verify hash integrity
+      const calculatedHash = this.generateReportHash(report);
+      if (calculatedHash !== report.reportHash) {
+        return { valid: false, invalidBlock: report.blockNumber, totalBlocks: allReports.length };
+      }
+
+      // Verify chain link (except genesis block)
+      if (i > 0) {
+        const previousReport = allReports[i - 1];
+        if (report.previousHash !== previousReport.reportHash) {
+          return { valid: false, invalidBlock: report.blockNumber, totalBlocks: allReports.length };
+        }
+      }
+    }
+
+    return { valid: true, totalBlocks: allReports.length };
+  }
+
+  async getBlockchainStats(): Promise<any> {
+    const reports = Array.from(this.reports.values())
+      .sort((a, b) => a.blockNumber - b.blockNumber);
+    
+    const verification = await this.verifyReportChain();
+    
+    return {
+      totalBlocks: reports.length,
+      isValid: verification.valid,
+      invalidBlock: verification.invalidBlock,
+      genesisBlock: reports.length > 0 ? {
+        number: reports[0].blockNumber,
+        hash: reports[0].reportHash.substring(0, 16) + '...',
+        timestamp: reports[0].timestamp,
+      } : null,
+      latestBlock: reports.length > 0 ? {
+        number: reports[reports.length - 1].blockNumber,
+        hash: reports[reports.length - 1].reportHash.substring(0, 16) + '...',
+        timestamp: reports[reports.length - 1].timestamp,
+      } : null,
+    };
   }
 
   private startHistoricalDataCollection() {

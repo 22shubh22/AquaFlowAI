@@ -178,11 +178,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/reports/:id/status", async (req, res) => {
     try {
-      const updated = await storage.updateReportStatus(req.params.id, req.body.status);
+      const { status, updatedBy = 'admin', reason } = req.body;
+      const updated = await storage.updateReportStatus(req.params.id, status, updatedBy, reason);
       res.json(updated);
     } catch (error) {
       res.status(404).json({ error: "Report not found" });
     }
+  });
+
+  // Blockchain verification endpoints
+  app.get("/api/blockchain/verify", async (req, res) => {
+    const verification = await storage.verifyReportChain();
+    res.json(verification);
+  });
+
+  app.get("/api/blockchain/stats", async (req, res) => {
+    const stats = await storage.getBlockchainStats();
+    res.json(stats);
   });
 
   // Historical Data API

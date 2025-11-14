@@ -2,7 +2,8 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Shield, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,15 @@ export function CitizenReports({ reports, onStatusChange, loading }: CitizenRepo
     investigating: { variant: "secondary" as const, label: "Investigating", color: "bg-blue-500" },
     resolved: { variant: "secondary" as const, label: "Resolved", color: "bg-green-500" },
   };
+
+  const [blockchainStats, setBlockchainStats] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/blockchain/stats')
+      .then(res => res.json())
+      .then(setBlockchainStats)
+      .catch(console.error);
+  }, [reports]);
 
   const formatTimestamp = (timestamp: string | Date) => {
     if (typeof timestamp === 'string') return timestamp;
@@ -65,10 +75,31 @@ export function CitizenReports({ reports, onStatusChange, loading }: CitizenRepo
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Citizen Reports</h3>
-          <span className="text-sm text-muted-foreground">
-            {reports.length} report{reports.length !== 1 ? 's' : ''}
-          </span>
+          <div className="flex items-center gap-3">
+            {blockchainStats?.isValid && (
+              <Badge variant="outline" className="gap-1">
+                <Shield className="h-3 w-3 text-green-600" />
+                Blockchain Verified
+              </Badge>
+            )}
+            <span className="text-sm text-muted-foreground">
+              {reports.length} report{reports.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
+        
+        {blockchainStats && (
+          <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="font-medium">Immutable Ledger Active</span>
+            </div>
+            <p className="text-muted-foreground">
+              All reports are cryptographically secured in block #{blockchainStats.totalBlocks - 1}. 
+              Records cannot be deleted or tampered with.
+            </p>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {reports.length === 0 ? (

@@ -116,13 +116,27 @@ export const api = {
     return res.json();
   },
 
-  updateReportStatus: async (id: string, status: string) => {
-    const res = await fetch(`${API_BASE}/reports/${id}/status`, {
+  updateReportStatus: async (id: string, status: string, reason?: string) => {
+    const response = await fetch(`/api/reports/${id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status, updatedBy: 'admin', reason }),
     });
-    return res.json();
+    if (!response.ok) throw new Error('Failed to update report status');
+    return response.json();
+  },
+
+  // Blockchain verification
+  verifyBlockchain: async () => {
+    const response = await fetch('/api/blockchain/verify');
+    if (!response.ok) throw new Error('Failed to verify blockchain');
+    return response.json();
+  },
+
+  getBlockchainStats: async () => {
+    const response = await fetch('/api/blockchain/stats');
+    if (!response.ok) throw new Error('Failed to get blockchain stats');
+    return response.json();
   },
 
   // Analytics
